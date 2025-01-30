@@ -1,0 +1,1270 @@
+---
+title: "Module 1 - Exploratory Data Analysis"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+library(DT)
+library(plotly)
+library(shiny)
+library(waffle)
+library(treemap)
+library(gt)
+library(janitor)
+library(yaml) 
+knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning=FALSE)
+
+
+
+choices<-c("Point"="point",
+"Jittered Plot"="jitter",
+"Boxplot"="boxplot",
+"Violin Plot"="violin",
+"Histogram"="histogram",
+"Density Plot"="density",
+"Caterpillar Plot"="caterpillar",
+"Bar Chart"="bar",
+"Dynamite Plot"="dynamite",
+"Mean + Error bar"="errorbar",
+"Cumulative Density Plot"="cdf",
+"Normal QQ Plot"="qq")
+
+choices2<-c("Bar Chart"="bar",
+"Stacked Bar Chart"="stacked_bar",
+"Waffle Plot"="waffle",
+"Pie Chart"="pie",
+"Tree Map"="tree_map")
+
+```
+
+```{r,context="data",include=FALSE}
+#ghg<-read.csv("../../Data/2005-2022-local-authority-ghg-emissions-csv-dataset.csv",stringsAsFactors = TRUE)
+
+ghg_2022<-readRDS("data/ghg_summary_data.RDS") %>% droplevels()
+
+ghg_snap<-readRDS("data/ghg_snap.RDS")
+
+ghg_summary<-readRDS("data/ghg_summary.RDS")
+
+ghg_allyears<-readRDS("data/ghg_summary_data_all.RDS")
+
+ghg_una<-readRDS("data/ghg_una.RDS")
+
+
+ts<-readRDS("data/ghg_una.RDS")
+
+
+
+```
+
+## Introduction
+
+We are going to start this course with a module covering what may be the most important, but most commonly overlooked, step in statistical analysis.
+
+Exploratory data analysis is the process of exploring, visualising and summarising our data before we move to any formal statistical analysis. While it may be tempting to skip to the end and start immediately fitting models or testing hypotheses to get the "results", going into these blind may lead to completely incorrect conclusions, overlooking important findings, or missing key caveats that would be needed.The aim of this process should be to help us to understand the data we are working with, uncover general patterns and trends in our data, identify possible data errors & inform choices for our future modelling about the shape of distributions. Having a robust tool kit of exploratory methods at your disposal is essential for this process - the most important part of this phase of analysis is the exploration - try out lots of different approaches to looking at your data rather than just automating some basic summaries. The more you explore, the more you will learn about the data and the less likely you are to make mistakes further down the line.
+
+This session we will cover:
+
+-   Data familiarisation and checking
+
+-   Exploratory methods for univariate analysis to identify possible errors or outliers, and to understand the shape, central tendency and distribution of the variables, to help inform how we would then choose to analyse these variables in a more formal model.
+
+-   Exploratory Methods to identify relationships between two or more variables, how strong these relationships appear to be, whether they have simple linear relationships or more complex relationships, and how sets of different variables may link together
+
+-   Linked across all three of these topics we will also cover data manipulation - looking at when it might be appropriate to apply transformations to our variables, aggregate data across different levels, create subsets of our data or derive new variables based on combinations of our existing variables.
+
+[PUT VIDEO HERE?]
+
+Most of the methods we cover in this session are likely to be somewhat familiar to you. Rather than covering these methods in detail, instead we will try to summarise the strengths & weaknesses of these methods and under which circumstances they would be most useful.
+
+There is no set 'recipe', or 'correct' answer for how to do exploratory data analysis - every problem will requires a different approach, with different methods. And analysts would make different choices about which methods to use and exactly the how to explore the data. Despite the different approaches good analysts should arrive at broadly the same set of conclusions about the data and thoughts about how to proceed to the next stage. Allow yourself time to try out new approaches and see if these help to explain new aspects about your data. Even when you don't seem to find a pattern you were expecting then this in itself can be a really useful point to take on board, if the effect you expected to see is not as strong, or not evident at all, within the data you have collected.
+
+To do exploratory data analysis well you need to be curious about the data, and interested in 'exploring' it fully thinking through what you are doing. This should be an iterative process - where you try to think about questions or hypotheses surrounding your data and then try to think of ways of summarising your data that may help to explore these questions. And it may be that the process of answering this question could provide more new questions, or that the answers are unclear. Which should then lead to trying new approaches, or changing the questions being asked.
+
+A good data explorer needs to be able to comfortably work with your data - manipulating it where needed by summarising to different levels, correct mistakes, or derive new variables - and to be able to produce a flexible range of different visualisations. You might be able to do some of this using Excel or Google Sheets, but to do it well and to do it in a reproducible and flexible way you will likely need to be using some other software tools like R or Python.
+
+In these workbooks all output produced will come from the use of R, and all of the code used in the workbooks can be found on GitHub here (ADD LINK). But the principles are identical regardless of which data analysis tool is being used. But whichever tool is being used for data analysis - it will require that the user is familiar enough with it to be able to generate any sort of summary or plot or transformation that they might suddenly think could be useful!
+
+## Understanding & Checking the Data
+
+... it may sound obvious but the first thing that needs to be done when working with a dataset is to look at it!
+
+This is particularly the case if as part of your research you have inherited your data, or it has come from an automated process, rather than being data that you have collected yourself. In these cases you will need to understand the data structures since they may be unfamiliar to you. Even if you have collected the data yourself there is a very high probability that you have made a mistake somewhere along the way, in the data entry or compilation phases.
+
+When first looking through our data there are a lot of things we want to be considering:
+
+-   What does each column contain?
+
+-   Are the column names coherent for us to understand the data?
+
+-   Has our data been interpreted appropriately by our software - are there perhaps issues where metadata has been confused for data, or columns contain multiple variables?
+
+-   Do the values in that column make some sense?
+
+-   What units are each of the columns recorded in?
+
+-   Are the numbers consistent with those units?
+
+-   Are there obviously incorrect high or low values?
+
+-   Are there zeros when there should be values?
+
+-   Are there missing values? And if so can we understand why there are missing values?
+
+-   Have codes been used to denote different levels of a categorical variables? Can you de-code these codes?
+
+-   What does each row contain?
+
+-   Does the number of rows match what we expect (e.g. if we are expecting one row of data per hour, do we always have 24 observations per day?)
+
+-   
+
+    ```         
+    Do we have any duplicated or obsolete rows or columns in the data?
+    ```
+
+While a lot of this may seem fairly basic, there are countless examples of data analysis mistakes, some minor some extremely major, made because analysts simply did not spend the time to look at and understand the data they were working with and ploughed straight through into the analysis. e.g. <https://www.bbc.co.uk/news/technology-54423988> ; <https://stats4sd.org/blog/22> ; <http://svmiller.com/blog/2020/04/reinhart-rogoff-ten-years-later-replication/> ).
+
+If the data collection is your responsibility - then part of the process of data collection and compilation should be data documentation and validation - ensuring that any mistakes in data entry are identified robustly and that metadata is produced allowing others to be able to inherit your data in the future and understand what each variable corresponds to, how it was collected and what it means.
+
+### Data being used in this workbook
+
+In this session we are going to explore a public dataset produced by the UK government summarising greenhouse gas emissions over time from 2005 to 2022, at local authority ('county') level, attributed to various different sources. This data is updated on an annual basis - you can read more about it here including reading through the metadata in full, or you could download a more recent version containing data from 2023 and beyond should it be available when you are reading this!
+
+<https://www.gov.uk/government/statistics/uk-local-authority-and-regional-greenhouse-gas-emissions-statistics-2005-to-2022>
+
+<https://assets.publishing.service.gov.uk/media/667ad5b45b0d63b556a4b305/2005-22-uk-local-authority-ghg-emissions.xlsx>
+
+If you downloaded the full dataset from the link above you would see that it has 533,016 rows. The first step, let's just take a look at the data - the first 1000 rows are shown below:
+
+```{r}
+DT::datatable(ghg_snap)
+```
+
+From a quick inspection visually of the first few hundred rows of this data we can actually learn quite a lot and start to answer some of the questions we may have.
+
+The first thing you might notice is that there seems to be a lot of data from Hartlepool, and not a lot of data from anywhere else! Closer inspection of the data shows why - we can see that data is stored as one row per gas per sub-sector per year per local authority. And we have three different gases (CO2,CH4 and N20), 32 different sub sectors, and 18 years - that's potentially up to 1728 rows per local authority. Hartlepool happens to come first because the Local Authority code "E06000001" happens to be the first one alphabetically. This data structure also tells us that we will need to be comfortable with manipulating the data between different levels - if we wanted to look at the total emissions per year, or within a sector, then we would need to be able to appropriately manipulate this dataset between those levels.
+
+Thankfully the column names and units in the data are much more immediately transparent as to what they mean, especially once you decode the acronyms used: some of the less familiar ones may be "LA"="Local Authority"; "GHG"="Greenhouse Gas"; "kt"="Kilo-tonnes";"CO2e"="CO2 equivalent".
+
+Manually checking through 533,016 rows of data to understand fully if all values are as expected sounds like a terrible idea!
+
+Within R, and within most equivalent software, there will be commands to explore the structure, or summary of the data, and this can help us to identify other potentially important points about the data.
+
+```{r}
+ghg_summary
+```
+
+There are a lot of numbers in there - but there is actually a lot of really useful insights we can make, that could help us to undersand the data:
+
+-   There are 414 rows with missing values for population and area of the county. There are also 414 rows in the data which are "Unallocated" to any of the countries of the UK, so it would seem logical that these may be the same rows. But it may not be clear why these rows are "unallocated" - let's restrict our data to see just those rows in particular:
+
+```{r}
+DT::datatable(ghg_una)
+```
+
+-   Looking at the local authority column we can see that these are definitely not local authorities! Instead they provide a very short description of the context - "Large elec users" or "Unallocated consumption". Nearly all the rows for these unallocated entries are for the Industry or Domestic sectors although there are some which relate to Waste or LULUCF (<https://unfccc.int/topics/land-use/workstreams/land-use--land-use-change-and-forestry-lulucf>). The existence of these rows, attributing emissions to unknown sources, will mean we have to think carefully about what to do with them when producing summaries of our data as there may be a number of different approaches we could consider.
+
+-   There are negative values for the column "Territorial.emissions..kt.CO2e". We may not have been expecting that! In these cases we will have estimates linked to carbon offsetting schemes. So this column is dealing with *net* emissions, and this is an important point for us to understand. And it is good that we have identified these before we did something which would have been impossible with negative data values, like taking a log transformation for example.
+
+-   There are not the same number of rows for each of the subsectors, although some of this could be explained by the unallocated sources above. And this disparity definitely seems to be a lot bigger than just the 414 rows! So we might then start to explore whether we have data for each sub sector within each year, for each of the three greenhouse gases and for each country.
+
+```{r data_explore_ui, context="render",echo=FALSE}
+
+  selectInput("table",label = "Explore Sub-Sector Frequency...",
+              choices =c("Overall","By Year","By Country","By GHG"))
+
+ 
+  gt::gt_output("table1")
+
+
+```
+
+```{r data_explore_server,context="server"}
+
+output$table1<-gt::render_gt({
+  
+    if(input$table=="Overall"){
+t<-ts[[1]]
+  }
+  
+  if(input$table=="By Year"){
+t<-ts[[2]]
+  }
+    if(input$table=="By GHG"){
+t<-ts[[3]]
+    }
+  if(input$table=="By Country"){
+t<-ts[[4]]
+  }
+
+gt(t)
+})
+
+```
+
+All of these summaries show us different reasons why there is a variable number of rows for the sub-sectors:
+
+-   "LULUCF Net Emissions: Bioenergy crops" was not included in the data until 2007; all other sub-sectors were included from 2005 onwards. It was also only recorded in England and Northern Ireland, not in Scotland or Wales.
+
+-   CO2 emissions are not recorded for "Agriculture Livestock"; and CH4 emissions are not recorded for "Agriculture Soils". And there are also a number of other sub-sectors that only have data reported for one or two of the three greenhouse gases.
+
+### Data Aggregation & Restriction
+
+To give ourself a slightly smaller task to take on in this workbook, we will focus in on an aggregation of the data. We will accumulate the total emissions only from CO2 across all sources within each local authority, and then also restrict our data to cover only 2022. Doing this will help us immensely if our question is concerning the relationships that exist between the CO2 emissions and the geographic characteristics of each county from the most recently available data. However this particular aggregation and restriction would be pretty useless if we were interested in looking more at the different sources, or relationships between the different gases, or the trends over time (although we will come back to that later!). Different data manipulation processes would be required to help us extract the relevant components to explore those questions from our larger database for those explorations.
+
+Below you can explore the extract of the data showing the total CO2 emissions for each county from 2022 (`Annual.CO2.Total`).
+
+```{r}
+DT::datatable(ghg_2022)
+```
+
+## Exploring One Numeric Variable
+
+### Summarising
+
+Let's now start thinking about the total CO2 emissions, which is a numeric variable. Summary statistics help us to get a better idea of the variability, the central tendency, the extreme values, and the distribution of the values.
+
+```{r sum_table}
+ghg_2022 %>%
+  ungroup() %>%
+      summarise("Number of Counties"=n(),
+                Mean=mean(Annual.CO2.Total)%>%round(1),
+                Median=median(Annual.CO2.Total)%>%round(1),
+                "Trimmed mean"=mean(Annual.CO2.Total,trim = 0.05)%>%round(1),
+                 "Geometric mean"=psych::geometric.mean(Annual.CO2.Total)%>%round(1),
+                "Harmonic mean"=psych::harmonic.mean(Annual.CO2.Total)%>%round(1),
+                 Sum=sum(Annual.CO2.Total)%>%round(),
+                "Minimum"=min(Annual.CO2.Total)%>%round(1),
+                "Maximum"=max(Annual.CO2.Total)%>%round(1),
+                "Range"=(max(Annual.CO2.Total)-min(Annual.CO2.Total))%>%round(1),
+                "Standard Deviation"=sd(Annual.CO2.Total)%>%round(1),
+                "Variance"=var(Annual.CO2.Total)%>%round(),
+                "Coefficient of Variation"=scales::percent(sd(Annual.CO2.Total)/mean(Annual.CO2.Total)),
+                "Lower Quartile"=quantile(Annual.CO2.Total,0.25)%>%round(1),
+                "Upper Quartile"=quantile(Annual.CO2.Total,0.75)%>%round(1),
+                "Inter Quartile Range"=diff(quantile(Annual.CO2.Total,c(0.25,0.75)))%>%round(1),
+                "Median Absolute Deviation"=mad(Annual.CO2.Total)%>%round(1),
+                "Kurtosis"=agricolae::kurtosis(Annual.CO2.Total)%>%round(2),
+                "Skewness"=agricolae::skewness(Annual.CO2.Total)%>%round(2),
+                "% of Values Over Threshold (100kt)"=scales::percent(mean(Annual.CO2.Total>1000)),
+                )%>%
+  gather(Statistic,Value) ->table_stat
+  gt::gt(table_stat) %>%
+  gt::fmt_number(columns = 2)
+  
+```
+
+From the table you are hopefully fairly familiar with most of the quantities mentioned; although I expect there will be some you will have heard of but perhaps don't really understand, and maybe some with which you are less familiar with.
+
+The interactive table below provides a summary of what the statistics can be used for. In general these statistics will fall into one of 4 categories -
+
+-   **frequency** - these statistics will tell us how much data is available, and how frequent specific events may be
+
+-   **central tendency** - often referred to as "average", these statistics will tell us something about the 'middle' of our data, or the most likely values to occur in the data.
+
+-   **variability** - these statistics will quantify how much deviation there is in our values away from the 'middle' of the data, and help us to the variation that exists within the data
+
+-   **distribution** - these statistics will help us to understand the shape of the data. Are values equally spread above or below the average? Are there outliers and how to way degree do these fall outside of expected ranges? Is there a single peak around the "average" or are there multiple peaks?
+
+```{r method_ui, context="render",echo=FALSE}
+
+  selectInput("method",label = "Select Summary Method",
+              choices =table_stat$Statistic)
+ 
+  gt::gt_output("table2")
+
+```
+
+```{r method_server,context="server"}
+
+output$table2<-render_gt({
+  data.frame(Statistic=c("Number of Counties",
+                       "Mean",
+                "Median",
+                "Trimmed mean",
+                 "Geometric mean",
+                "Harmonic mean",
+                 "Sum",
+                "Minimum",
+                "Maximum",
+                "Range",
+                "Standard Deviation",
+                "Variance",
+                "Coefficient of Variation",
+                "Lower Quartile",
+                "Upper Quartile",
+                "Inter Quartile Range",
+                "Median Absolute Deviation",
+                "Kurtosis",
+                "Skewness",
+                "% of Values Over Threshold (100kt)"
+                ),
+           Type=c("Frequency",
+                  "Central Tendency","Central Tendency","Central Tendency","Central Tendency","Central Tendency",
+                  "Accumulation",
+                  "Distribution","Distribution","Distribution",
+                  "Variability","Variability","Variability",
+                  "Distribution","Distribution","Variability","Variability",
+                  "Distribution", "Distribution", "Frequency/Distribution"),
+           "When/why is this useful?"=
+             c("Always useful! Helps understand how much data we are basing the rest of our statistics on",
+               "Or the 'arithmetic mean'. 'Average of all of the values' - most easily calculated and commonly used measure of central tendency, but sensitive to outliers and/or non-symmetrical distributions. Forms the basis of most traditional 'frequentist' statistical methodologies and models due to have very friendly mathematical properties.",
+               "'The average value' - less sensitive to outliers than the mean, and one that is easier to understand conceptually - half the values are lower than median, and half the values are higher. But a trickier value to model statistically. Often useful to compare to the mean - since very different values for mean and median suggest a distribution that is non-symmetrical and/or has large outliers",
+               "The mean value with the top 5% and bottom 5% of values removed, therefore adjusting for the presence of outliers. Can be useful where those outliers are indeed valid observations, but ones that we do not want to focus our analysis on.",
+               "The back-transformed average of the logarithm of the values. Useful in specific cases when dealing with exponential distributions - e.g. population growth",
+               "The back-transformed average of the reciprocral of the values. Useful in specific cases involving rates or ratios (e.g. the classic school-level maths problem of needing to calcuating the average speed when a driver travels 40km at 40km/h and then 40km at 60km/h. The answer is 48km/h - the harmonic mean; not 50km/h - the arithmetic mean).",
+               "Useful if dealing with something that can be summed across the data meaningfully. E.g. the total carbon emissions could be summed here to give us the values for the whole of the UK. But many quantities do not make sense to sum up; and sums are only likely to be useful if we have data covering the whole population rather than a sample of the population.",
+               "The lowest observed value - useful for understanding and identifying extremes and/or possible outliers",
+            "The highest observed value - useful for understanding and identifying extremes and/or possible outliers",
+            "The difference between the min and the max. An extremely sensitive quantity, so only likely to be stable when dealing with the full population rather than a sample.",
+            "A measure of variability, which can be interpreted on the same scale as the data itself. If we are in the fortunate case of having something which looks like a normal distribution then 'approximately 95%' of the observed data would be expected to be within +-2SD of the mean. Value is very sensitive to the presence of outliers!",
+            "A measure of total variability, the standard deviation squared. Essentially impossible to interpret on it's own, hence why standard deviation is preferred 99% of the time, but has nice statistical properties.",
+            "The ratio between the standard deviation and the mean. In certain contexts this can be quite useful to understand - if the %CV is 'small' (e.g. 10%-20%) this suggests a very low amount of variability between values. If it is 'large' (e.g. 200%) this suggests a high amount of variability. Useful for comparison between groups or against known benchmarks. Only valid to consider if all numbers are greater than or equal to zero.",
+                   "The point at which 25% of values are lower, and 75% are higher. Useful in combination with the Upper Quartile and Median to understand the shape and variability of the data.",
+                "The point at which 75% of values are lower, and 25% are higher. Useful in combination with the Lower Quartile and Median to understand the shape and variability of the data.",
+                "The difference between the upper and lower quartiles - a measure of variability since a low value indicates points will be tightly clustered around the median, and high value indicates a wider range of common values. As a measure of variability it is largely unaffected by outliers, unlike the standard deviation/variance.",
+                "The median of the deviations between the observations and the median. Like the IQR it is robust in the presence of outliers; unlike the IQR it considers variability across the whole range of data rather than focusing in on the 'middle' 50% of the data.",
+                "A measure of the 'shape' of the distribution indicating whether there are 'long tails' - sometimes described fairly abstractly as 'peaked-ness'. A classic normal distribution, a 'bell-shaped curve' has a kurtosis of 0 - negative values indicate something which will have 'smaller' tails (i.e. fewer outlying values), positive values indicate something which will have 'longer' tails (i.e. more outlying values). In practical terms it is almost always less useful than more intuitive methods for determining the presence and impact of outliers, unless you want to look fancy by including some technical terminology that few people understand.",
+                "A measure of the 'shape' of the distribution indicating whether the distribution is symmetrical (value>0), 'positively skewed' (value>1) - i.e. has higher density of points below the median but has some values above the median that are very large; or negatively skewed i.e. has higher density of points above the median but some values above the median that are increasingly small. Similar to kurtosis, this is something which is almost always better understood and assessed through more intuitive visual methods.",
+                "An intuitive way of understanding the distribution, especially where there may be benchmarks or targets to compare against. For the table above I created an arbitrary target of 100kt which is unlikely to be especially meaningful within this context."
+             ),check.names=FALSE)%>% 
+    filter(Statistic==input$method) %>%
+    gt::gt()
+})
+```
+
+### Visualisation
+
+All of those numbers can feel a bit overwhelming, and to be honest I find most of them not especially helpful in terms of trying to understand what is going on in my data! Visual methods for exploration of data are almost always going to be more illuminating in uncovering more information about these key points regarding the :
+
+But, much like with the list of statistics, there are a whole lot of different options we could use here to visualise our data, and there are a lot of pros and cons to each of these methods. Take a look at some of the more common different approaches using the interactive plot below, and think through what these plots can tell you about the CO2 variable.
+
+Further explanations about exactly what the plots are presenting, and why, and some pros and cons can also be found in the table below. In general there is a trade-off we need to make between 'displaying' the data and 'summarising' the data - methods that only 'display' the data will be difficult to make inferences from, methods which summarise the data too much will focus too much on one particular aspect (usually the average value), and may overlook other key aspects of the distribution and variability of the variable being plotted.
+
+```{r v1_ui, context="render",echo=FALSE}
+
+  selectInput("plot_type",label = "Type of Visualisation",
+              choices =choices)
+  plotlyOutput("plot1")
+
+```
+
+```{r v1_server,context="server"}
+  output$plot1 <- renderPlotly({
+    
+    if(input$plot_type=="boxplot"){
+      outs1<-quantile(ghg_2022$Annual.CO2.Total,c(0.25,0.75))+c(-1,1)*diff(quantile(ghg_2022$Annual.CO2.Total,c(0.25,0.75)))*1.5
+      outs<-ghg_2022 %>%
+        filter(Annual.CO2.Total<outs1[1] | Annual.CO2.Total>outs1[2])
+    }
+    
+( ggplot(ghg_2022)+
+      {if(input$plot_type=="point")geom_point(aes(y=Annual.CO2.Total,x=Calendar.Year,county=Local.Authority))}+
+      {if(input$plot_type=="caterpillar")geom_point(aes(y=Annual.CO2.Total,x=rank(Annual.CO2.Total),county=Local.Authority))}+
+      {if(input$plot_type=="jitter")geom_jitter(aes(y=Annual.CO2.Total,x=Calendar.Year,county=Local.Authority),height=0,width=0.25)}+
+      {if(input$plot_type=="errorbar"|input$plot_type=="dynamite")stat_summary(aes(y=Annual.CO2.Total,x=Calendar.Year),fun.data=mean_cl_normal,
+                                                                               conf.int=0.95)}+
+      # {if(input$plot_type=="dynamite")geom_col(aes(y=mean(Agriculture),x=Calendar.Year))}+
+      {if(input$plot_type=="histogram")geom_histogram(aes(x=Annual.CO2.Total))}+
+      {if(input$plot_type=="violin")geom_violin(aes(y=Annual.CO2.Total,x=Calendar.Year,group=Calendar.Year))}+
+      {if(input$plot_type=="density")geom_density(aes(x=Annual.CO2.Total))}+
+      {if(input$plot_type=="boxplot")geom_boxplot(aes(y=Annual.CO2.Total,outliers=FALSE,
+                                                      x=Calendar.Year,group=Calendar.Year,county=Local.Authority,))}+
+      {if(input$plot_type=="density"|input$plot_type=="histogram")facet_wrap(~Calendar.Year)}+
+      {if(!(input$plot_type=="density"|input$plot_type=="histogram"|input$plot_type=="qq"|
+            input$plot_type=="caterpillar"|input$plot_type=="cdf"))scale_x_continuous(limits=c(2021,2023),breaks=2022)}+
+      {if(input$plot_type=="dynamite"|input$plot_type=="bar")stat_summary(geom="col",fun="mean",aes(y=Annual.CO2.Total,x=Calendar.Year))}+
+      {if(input$plot_type=="cdf")  stat_ecdf(geom = "step",aes(x=Annual.CO2.Total))}+
+    {if(input$plot_type=="qq")  stat_qq(aes(sample=Annual.CO2.Total),linewidth=0.5)}+
+    {if(input$plot_type=="qq")  stat_qq_line(aes(sample=Annual.CO2.Total),linewidth=0.5,col="red",linetype=2)}+
+    {if(input$plot_type=="caterpillar")  labs(x="Rank",y="Annual CO2 Emissions 2022 (kt)")}+
+    {if(input$plot_type=="qq")  labs(x="Theoretical Quantile",y="Annual CO2 Emissions 2022 (kt)")}+
+    {if(input$plot_type=="cdf")  labs(y="Percentile",x="Annual CO2 Emissions 2022 (kt)")}+
+    {if(input$plot_type=="cdf")  scale_y_continuous(labels=scales::percent,breaks=seq(0,1,by=0.2))}+
+    {if(input$plot_type=="boxplot")geom_point(aes(y=Annual.CO2.Total,x=Calendar.Year,group=Calendar.Year,county=Local.Authority),
+                                              data=outs)}+
+    {if(!(input$plot_type=="density"|input$plot_type=="histogram"|input$plot_type=="qq"|
+          input$plot_type=="caterpillar"|input$plot_type=="cdf")) labs(y="Annual CO2 Emissions 2022 (kt)",x="") }+
+    {if((input$plot_type=="density"|input$plot_type=="histogram")) labs(x="Annual CO2 Emissions 2022 (kt)") }+
+    theme_light()+
+    ggtitle(paste(names(choices)[choices==input$plot_type]," - Annual CO2 Emissions 2022 (kt)")))  %>% 
+      ggplotly()
+  })
+```
+
+Some of the key characteristics we should be interpreting from these plots would be: - The 'average' value of the variable is around 600-700 kt of CO2; although this is the one area when we can see that more clearly from the summary statistics rather than any of the plots - The distribution is 'unimodal' - i.e. in the histogram, density and violin points there is one clear peak around which the "average" or most common level of CO2 emissions falls - The values in the data are truly continuous variables, i.e. they are all distinct and not spaced at regular intervals. If data had been rounded off, or fell into an ordinal distribution, you would expect to see spikes in the shape of the density and violin plots, and possibly regularly spaced gaps in the histogram. - There is a 'positive' skew in the data - there are an increasingly small number of points with increasingly high amount of CO2 emissions. This is very clearly seen in the histogram, density, caterpillar, boxplot & violin plots. In these cases the mean will be substantially higher than the median, as we saw in the summary statistics table. - As a result of this the data is definitely not 'symmetrical' and could not be considered to be "normally" distributed. If it was the case then the histogram/density plots would fit into a "bell shaped curve" and the points in the QQ plot would follow the line - There is a large range in the values, which can be seen in most of the plots, but the majority of data points fall in a relatively narrow range between 200-800 kt of CO2. This aspect can be best seen from the relatively small width of the box in the boxplot; the sharp peaks in the violin/density/histogram plots; the lack of variability in the caterpillar plot; and the rapid vertical ascent in the cumulative density plot. - There are two points with CO2 emissions that are substantially higher than any other local authority - Birmingham and North Yorkshire - There is one point with very low CO2 emissions relative to the other counties - the Isles of Scilly
+
+When highlighting some of these key aspects of the plots, you may notice that most of the different types of plots have been referred to - except for bar charts, 'dynamite plots' and means with error bars. As tools for exploratory data visualisation then these are all extremely limited - bar charts when used for numeric variables generalise a complex set of data down to a single point and then visually represent them in a way which is meaningless. There is no reason for a bar chart representing the emissions to start at 0 - we could choose to draw the bar starting anywhere, thus making the size of the bar meaningless and easy to provide misleading plots when we start bringing in additional variables to compare across. The use of error bars within exploratory data analysis is also generally not a good practice - at this stage in the analysis process any calculation of standard errors or confidence intervals would be based on naive generic assumptions, that may be wildly incorrect. Using errorbars is a powerful visual tool to display the uncertainty in estimates that we have made after we have concluded our analysis and modelling; and we will cover thus in later sessions but it is not a good way of understanding the variability in the data in our exploratory phase.
+
+```{r methodp_ui, context="render",echo=FALSE}
+
+  selectInput("method2",label = "Select Visualisation Method",
+              choices =c("Point",
+"Jittered Plot",
+"Boxplot",
+"Ridge/Violin Plot",
+"Histogram",
+"Density Plot",
+"Caterpillar Plot",
+"Bar Chart",
+"Dynamite Plot",
+"Mean + Error bar",
+"Cumulative Density Plot",
+"Normal QQ Plot"))
+ 
+  gt::gt_output("table3")
+
+
+```
+
+```{r methodp_server,context="server"}
+output$table3<-render_gt({
+  
+  data.frame(Plot=c("Point",
+"Jittered Plot",
+"Boxplot",
+"Ridge/Violin Plot",
+"Histogram",
+"Density Plot",
+"Caterpillar Plot",
+"Bar Chart",
+"Dynamite Plot",
+"Mean + Error bar",
+"Cumulative Density Plot",
+"Normal QQ Plot"),
+image=choices,
+Usages=c("Easy to understand, read off direct data values, and identify outliers",
+"Better than a point plot where density or quantity of data is high",
+"Visual link between key summary statistics and the data, allows easy comparison across groups in both the averages and the variability",
+"Easy comparison of distributions across many groups. Ridge plots and violin plots are effectively the same; only violin plots mirror the distribution shape to be slightly more visually appealing. The shape being plotted is same as in the the density plots, but with the y axis from the density plot removed to allow for multiple 'ridges' or 'violins' to be plotted side by side and compared.",
+"Intuitive way to understand the distribution of the data by converting the numeric variable into a categorical variable by creating 'bins' of values and then created a bar chart showing the number of points falling into each of the bins",
+"A more accurate way to understand the shape of the distribution of the data compared to a histogram",
+"A good way to identify outliers, and gain better understanding of how different these values are, by plotting the values against the rank of the value - so the highest value will appear on the left hand side, followed by the next highest value and so on. It can also be a really useful method to identify unexpected structure in what was thought to be a numeric value - e.g. if all values are unexpectedly rounded off to the nearest whole number",
+"Easy to understand the values being plotted",
+"Has the most cool name. Otherwise there are no reasons to ever plot your data like this - please never do it. https://simplystatistics.org/posts/2019-02-21-dynamite-plots-must-die/",
+"Allows for easy comparison of the average values across multiple groups by focusing the comparison to a more limited range of values - so can be useful to identify differences when variability is high",
+"Easy to read off and link the percentiles across the whole dataset, and to compare across groups when considering the extremes of the distribution (e.g. comparing whether different groups may be at high risk based on looking at differnet cut offs from the 90th/95th/99th percentile). So a good way of summarising a large amount of data efficiently",
+"Helps assess if our data is approximately normally distributed in an easier way then other alternatives. The line is the 'theoretical' normal distribution - if the points closely follow the line then we have a distribution that is approximately normal. The QQ plot can also be easily modified to show how data matches to other known distributions (e.g. Posson, Cauchy, Gamma etc)."),
+Limitations=c("Cannot infer averages or variability or shape of distribution; points will overlap when there is a large amount or high density of data",
+"Solves the issue of overlapping points, but does not solve the other weaknesses listed above",
+"Over-simplification of the distribution; outlier detection is relatively arbitrary and often over-interpreted",
+"Cannot infer data values, or summary statistics from the plot",
+"Shape is easily influenced by the choice of bar width; comparisons can only be made across a small number of groups",
+"y axis often proves difficult to interpret; comparisons can only be made across a small number of groups",
+"Can't easily make comparisons between groups or infer averages or other summary statistics",
+"Provides no assessment of variability; makes it difficult to compare between groups where the bar is artificially dragged to start at zero. Should only be used when plotting percentages, counts or sums - should never be used to plot averages",
+"All the weaknesses of the 'mean + error bar' plot, without any of the strengths, combined with all of the weaknesses of a bar chart. The lower limit falling under the bar is visually confusing.",
+"Error bars based on confidence intervals are based on assumptions, which may or may not be valid, and do not tell us much about the variability in the data - particularly with large datasets",
+"Not useful with smaller data sets; usability becomes limited in presence of extreme values",
+"... most of the time we don't really care that much about this and this is the only thing it can do")) %>%
+      filter(Plot==input$method2) %>%
+  gt::gt() %>%
+     text_transform(
+    locations = cells_body(columns = image),
+    fn = function(x) {
+      local_image(
+        filename = paste0("../img/",x,".png"),
+        height = 75
+      )}
+      )%>%
+    gt::cols_label(image=" ")
+  
+})
+
+```
+
+## Exploring One Categorical Variable
+
+Unlike with a numeric variable, where we can be overwhelmed by the number of options for summary statistics, there are only really two options for summary statistics when we are dealing with one single categorical variable - a frequency count or a percentage/proportion.
+
+Things do get a little more interesting with categorical variables, when we bring in more than one variable a little bit later on!
+
+```{r sum_table_cat}
+ghg_2022 %>%
+  group_by(CO2_Reduction_from_2005) %>%
+      summarise("Number of Counties"=n(),
+                "Percentage of Counties"=scales::percent(n()/nrow(ghg_2022),0.1)) %>%
+  gt::gt()
+```
+
+Here the main things we are looking for are simply sense checking our results - do the relative frequencies/percentages make sense? Are there categories missing from the analysis?
+
+This is also a common point where you may realise if there are inconsistencies in your group labelling - lets say sometimes the first category had been coded as "30% or less", sometimes as "\<30%", and sometimes as "Less than 30%". Any analysis software would recognise those three entries as completely different categories, and we would need to clean our labels and make sure they were consistent before proceeding any further. Most analysis software, except for Excel, is also case sensitive so "30% or less" and "30% or Less" would also be treated as different categories - in a large database this is something that you will very commonly miss when working with Excel, and could then lead to some fundamental problems with your data analysis down the line if you don't spot this before starting on your more formal data analysis.
+
+### Visualisation
+
+Similarly there are fewer options when considering visualisation of categorical data. All of them fundamentally distil down to the same idea of presenting objects that have size proportional to the frequency or the percentage.
+
+Although there are perhaps a surprising amount of different options here:
+
+-   Bar charts, where bars can be stacked or placed side-by-side. Unlike when using bar charts to display summarised numeric variable there is no data loss by using a bar chart to represent our data, and the starting point of the bar is clearly defined as 0 when dealing with a frequency or percentage.
+
+    -   Side by side bar charts are the simplest to produce, and easiest to read off the data values. But they often result in a lot of 'dead space' on the page, particularly where groups have very different relative frequencies, and when we start to introduce more variables can be hard to compare across groups.
+
+    -   Stacked bar charts are better for comparisons, particularly for the case in which we have ordered categorical data (e.g. "None"/"Some"/"A lot"/"All"), but harder to intepret the exact values. If the categories do not have an inherent order then it can be less useful for comparison.
+
+-   Pie charts have all the negatives of stacked bar charts, as well as being hard to compare across groups like side by side bar charts. And on top of this as humans we are really bad at interpreting the areas presented within pie charts, compared to the rectangles and squares of the other options presented.
+
+-   Waffle charts and tree maps are similar alternatives which try to make stacked bar charts a little easier to understand by spreading the data presentation across a second dimension.
+
+    -   Waffle charts have one square to represent one 'unit' - which can cause problems if we have groups which only take up a fraction of a unit (e.g. a group with a percentage of 0.4% would be dropped completely) - but it is easier to link the visualisation to the actual quantity.
+
+    -   Tree maps allocate the area within a rectangle proportionally to each of our categories - there is no way of directly reading off any data values from the visualisation, but it is visually an easy way of comparing the relative sizes of different groups, and it lends itself well to cases where we may have nested variables (e.g. within our data where we have sub-sectors within sectors.)
+
+```{r v2_ui, context="render",echo=FALSE}
+
+  selectInput("plot_type2",label = "Type of Visualisation",
+              choices =choices2)
+  selectInput("num",label = "Frequencies or Percentages?",
+              choices =c("Frequencies","Percentages"))
+  
+  plotOutput("plot2")
+
+
+```
+
+```{r v2_server,context="server"}
+  
+ sum_tab<-   ghg_2022 %>%
+  group_by(CO2_Reduction_from_2005) %>%
+      summarise(n=n(),
+                p=n()/nrow(ghg_2022))
+
+output$plot2 <- renderPlot({
+  if(input$plot_type2=="bar")  {
+                if(input$num=="Frequencies"){
+    p1<-ggplot(sum_tab,aes(x=CO2_Reduction_from_2005,y=n,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = FALSE,col="black")+
+          scale_fill_brewer(palette="Set2")+
+          theme_light()
+                }
+                if(input$num!="Frequencies"){
+   p1<- ggplot(sum_tab,aes(x=CO2_Reduction_from_2005,y=p,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = FALSE,col="black")+
+          scale_fill_brewer(palette="Set2")+
+          theme_light()+
+            scale_y_continuous(labels=scales::percent)
+                }
+      }
+      if(input$plot_type2=="stacked_bar")  {
+                if(input$num=="Frequencies"){
+    p1<- ggplot(sum_tab,aes(x=1,y=n,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = TRUE,col="black")+
+          scale_fill_brewer(palette="Set2")+
+          theme_light()
+                }
+                if(input$num!="Frequencies"){
+   p1<-  ggplot(sum_tab,aes(x=1,y=p,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = TRUE,col="black")+
+          scale_fill_brewer(palette="Set2")+
+          theme_light()+
+            scale_y_continuous(labels=scales::percent)
+    
+                }
+      }
+      if(input$plot_type2=="waffle")  {
+        if(input$num=="Frequencies"){
+    waffle(select(sum_tab,CO2_Reduction_from_2005,n),
+       rows=19, size=0.5,title = "CO2 Reduction Across Counties Within The UK",
+       xlab="1 Square  = 1 County") %>% print()
+        }
+                if(input$num!="Frequencies"){
+    waffle(select(sum_tab,CO2_Reduction_from_2005,p)%>%mutate(p=round(p*100)),
+       rows=10, size=0.5,title = "CO2 Reduction Across Counties Within The UK",
+       xlab="1 Square  = 1 % of all counties") %>% print()
+        }
+      }
+      if(input$plot_type2=="pie")  {
+             if(input$num=="Frequencies"){   
+ p1<-ggplot(sum_tab,aes(x=1,fill=CO2_Reduction_from_2005,y=p))+
+  geom_col(col="black",alpha=0.8)+
+  coord_polar("y", start=0)+
+  scale_fill_brewer(palette="Set2")+
+  theme_minimal()+
+  scale_x_continuous(breaks=NULL)+
+  scale_y_continuous(breaks=seq(0,1,by=0.1),labels=scales::percent)
+             }
+                if(input$num!="Frequencies"){
+ p1<- ggplot(sum_tab,aes(x=1,fill=CO2_Reduction_from_2005,y=n))+
+  geom_col(col="black",alpha=0.8)+
+  coord_polar("y", start=0)+
+  scale_fill_brewer(palette="Set2")+
+  theme_minimal()+
+  scale_x_continuous(breaks=NULL)
+                }
+      }
+    if(input$plot_type2=="tree_map")  {
+    treemap(sum_tab,
+            index=c("CO2_Reduction_from_2005"),
+            vSize="n",
+            type="index",
+            palette = "Set2",
+            bg.labels=c("white")
+            )  %>% print()
+    }
+    if(input$plot_type2!="tree_map" & input$plot_type2!="waffle")  {
+      print(p1)
+    }
+      })
+ 
+    
+
+```
+
+## Two Variables
+
+Looking at one variable alone can give us some ideas about the shape of our variables; but the exploratory data analysis process really starts to get a bit more interesting when we start considering how our variables may relate to each other.
+
+A lot of summary statistics and visualisations to identify relationships between two or more variables build upon those we have covered so far.
+
+It is likely we may have some hypotheses or questions already that we want to explore (e.g. how have CO2 levels changed over time? Are CO2 levels more impacted by population or area? Which sectors have made the biggest changes in emissions over time?). But sometimes we may come in with no real preconceptions around how the relationships in our data may look.
+
+### Numeric vs Categorical
+
+All of the summary statistics covered previously would work in exactly the same way as we saw already, except we now have multiple groups to compare our statistics across. Even having some degree of comparison across groups defined by categorical variables can help to make many of these statistics a lot more useful!
+
+```{r sum_table grp}
+ghg_2022 %>%
+  group_by(Country) %>%
+      summarise("Number of Counties"=n(),
+                Mean=mean(Annual.CO2.Total)%>%round(1),
+                Median=median(Annual.CO2.Total)%>%round(1),
+                "Trimmed mean"=mean(Annual.CO2.Total,trim = 0.05)%>%round(1),
+                 "Geometric mean"=psych::geometric.mean(Annual.CO2.Total)%>%round(1),
+                "Harmonic mean"=psych::harmonic.mean(Annual.CO2.Total)%>%round(1),
+                 Sum=sum(Annual.CO2.Total)%>%round(),
+                "Minimum"=min(Annual.CO2.Total)%>%round(1),
+                "Maximum"=max(Annual.CO2.Total)%>%round(1),
+                "Range"=(max(Annual.CO2.Total)-min(Annual.CO2.Total))%>%round(1),
+                "Standard Deviation"=sd(Annual.CO2.Total)%>%round(1),
+                "Variance"=var(Annual.CO2.Total)%>%round(),
+                "Coefficient of Variation"=scales::percent(sd(Annual.CO2.Total)/mean(Annual.CO2.Total)),
+                "Lower Quartile"=quantile(Annual.CO2.Total,0.25)%>%round(1),
+                "Upper Quartile"=quantile(Annual.CO2.Total,0.75)%>%round(1),
+                "Inter Quartile Range"=diff(quantile(Annual.CO2.Total,c(0.25,0.75)))%>%round(1),
+                "Median Absolute Deviation"=mad(Annual.CO2.Total)%>%round(1),
+                "Kurtosis"=agricolae::kurtosis(Annual.CO2.Total)%>%round(2),
+                "Skewness"=agricolae::skewness(Annual.CO2.Total)%>%round(2),
+                "% of Values Over Threshold (100kt)"=scales::percent(mean(Annual.CO2.Total>1000)),
+                )%>%
+  gather(Statistic,Value,-Country ,factor_key = TRUE) %>%
+  spread(Country ,Value) %>%
+  gt::gt() 
+  
+```
+
+For visualisations these would again largely follow the same set of plots we have already explored for "one numeric" variable but with the data for each group placed side by side or distinguished by use of different colours or symbols. So instead of looking at one box in a boxplot we are looking at two (or more) boxes side by side. In the table previously some of the summaries of the methods will have already implied that they were probably more useful in this context, to compare the variable across groups, rather than just in isolation.
+
+Not all of the methods covered are so suitable for comparison - qq plots for example may be produced for different groups, but there is no real benefit in comparing the 'relative' normal-ness of different groups. When exploring some of the other methods there will be pros and cons to overlaying the data from different groups in different colours, or separating out the different groups into different plots.
+
+Despite the strong similarity between histograms and density plots the choice I would make here is a different one for each of them: I would find groups overlaying all groups within the same plot for a histogram can be visually a little overwhelming, and hard to separate, so prefer to split each group out into a different plot. But overlaying the groups in a density plot does provide an easy visual means of comparison.
+
+```{r v3_ui, context="render",echo=FALSE}
+
+  selectInput("plot_type3",label = "Type of Visualisation",
+              choices =choices)
+  plotlyOutput("plot3")
+
+```
+
+```{r v3_server,context="server"}
+  output$plot3 <- renderPlotly({
+    
+    if(input$plot_type3=="boxplot"){
+      outs1<-quantile(ghg_2022$Annual.CO2.Total,c(0.25,0.75))+c(-1,1)*diff(quantile(ghg_2022$Annual.CO2.Total,c(0.25,0.75)))*1.5
+      outs<-ghg_2022 %>%
+        filter(Annual.CO2.Total<outs1[1] | Annual.CO2.Total>outs1[2])
+    }
+    
+( ggplot(ghg_2022)+
+      {if(input$plot_type3=="point")geom_point(aes(y=Annual.CO2.Total,x=Country,colour = Country,county=Local.Authority))}+
+      {if(input$plot_type3=="caterpillar")geom_point(aes(y=Annual.CO2.Total,colour = Country,x=rank(Annual.CO2.Total),county=Local.Authority))}+
+      {if(input$plot_type3=="jitter")geom_jitter(aes(y=Annual.CO2.Total,colour = Country,x=Country,county=Local.Authority),height=0,width=0.25)}+
+      {if(input$plot_type3=="errorbar"|input$plot_type3=="dynamite")stat_summary(aes(y=Annual.CO2.Total,colour = Country,x=Country),fun.data=mean_cl_normal,
+                                                                               conf.int=0.95)}+
+      # {if(input$plot_type=="dynamite")geom_col(aes(y=mean(Agriculture),x=Calendar.Year))}+
+      {if(input$plot_type3=="histogram")geom_histogram(aes(x=Annual.CO2.Total,colour = Country))}+
+      {if(input$plot_type3=="violin")geom_violin(aes(y=Annual.CO2.Total,x=Country,fill = Country,group=Country))}+
+      {if(input$plot_type3=="density")geom_density(aes(x=Annual.CO2.Total,col = Country))}+
+      {if(input$plot_type3=="boxplot")geom_boxplot(aes(y=Annual.CO2.Total,outliers=FALSE,fill = Country,
+                                                      x=Country,group=Country,county=Local.Authority,))}+
+      {if(input$plot_type3=="histogram"|input$plot_type3=="caterpillar"|
+          input$plot_type3=="histogram"|input$plot_type3=="qq")facet_wrap(~Country)}+
+
+      {if(input$plot_type3=="dynamite"|input$plot_type3=="bar")stat_summary(geom="col",fun="mean",aes(y=Annual.CO2.Total,x=Country,fill = Country))}+
+      {if(input$plot_type3=="cdf")  stat_ecdf(geom = "step",aes(x=Annual.CO2.Total,colour = Country))}+
+    {if(input$plot_type3=="qq")  stat_qq(aes(sample=Annual.CO2.Total,colour = Country),linewidth=0.5)}+
+    {if(input$plot_type3=="qq")  stat_qq_line(aes(sample=Annual.CO2.Total),linewidth=0.5,col="black",linetype=2)}+
+    {if(input$plot_type3=="caterpillar")  labs(x="Rank",y="Annual CO2 Emissions 2022 (kt)")}+
+    {if(input$plot_type3=="qq")  labs(x="Theoretical Quantile",y="Annual CO2 Emissions 2022 (kt)")}+
+    {if(input$plot_type3=="cdf")  labs(y="Percentile",x="Annual CO2 Emissions 2022 (kt)")}+
+    {if(input$plot_type3=="cdf")  scale_y_continuous(labels=scales::percent,breaks=seq(0,1,by=0.2))}+
+    {if(input$plot_type3=="boxplot")geom_point(aes(y=Annual.CO2.Total,x=Country,group=Country,county=Local.Authority,colour = Country),
+                                              data=outs)}+
+    {if(!(input$plot_type3=="histogram"|input$plot_type3=="qq"|
+          input$plot_type3=="caterpillar"|input$plot_type3=="cdf")) labs(y="Annual CO2 Emissions 2022 (kt)",x="") }+
+    {if((input$plot_type3=="histogram")) labs(x="Annual CO2 Emissions 2022 (kt)") }+
+    theme_light()+
+    ggtitle(paste(names(choices)[choices==input$plot_type3]," - Annual CO2 Emissions 2022 (kt)")))  %>% 
+      ggplotly()
+  })
+```
+
+### Categorical vs. Categorical
+
+When exploring the relationship between two (or more) categorical variables there is just one additional source of complexity to consider when summarising the results in cross-tabulations or summary plots - what sort of percentages are the most meaningful?
+
+In the table below question which sort of percentage is likely to make the most sense:
+
+-   (within) row percentages: '92% **of the counties who reduced CO2 by 50% or more** were in England'
+
+-   (within) column percentages : '11% **of the counties in England** reduced CO2 by 50%'
+
+-   overall percentages : 9% of **all** counties reduced CO2 by 50% or more **and** were in England
+
+```{r v7_ui, context="render",echo=FALSE}
+
+  selectInput("percent_type",label="Type of Percentage",choices = c("row","column"="col","overall"="all"),
+             )
+
+  gt_output("crosstab")
+
+```
+
+```{r sum_table_cat7, context="server",echo=FALSE}
+
+
+output$crosstab<-render_gt({
+  ghg_2022 %>%
+  tabyl(CO2_Reduction_from_2005,Country) %>%
+      adorn_percentages(denominator = input$percent_type)%>%
+      adorn_pct_formatting() %>%
+      adorn_ns(format_func = function(x)paste("n =",x)) %>%
+  gt()
+})
+
+```
+
+Sometimes multiple versions of the percentages may be of interest; although it is usually the case that there will be one which is clearly the most appropriate option to be using. In this case, and in cases were there is a clear distinction between an 'outcome' variable (like CO2 emissions) and an 'explanatory' variable (like country), there is a clear answer as to which would be the most sensible to consider.
+
+The 'column' percentages from the table above will be the most useful here - being able to compare the % of counties falling into each of the CO2 reduction categories by country tells us some interesting things: - The distribution of the counties falling into each CO2 reduction category looks pretty similar for England and Scotland. Proportionally there are more counties in the higher reduction categories in Wales, and fewer in Scotland - 64% of the Northern Irish counties reduced CO2 by 30% or less, compared to only 4% in England, 6% in Scotland and none in Wales
+
+Looking at the 'row' percentages here does not tell us much at all - out of all of the counties in the UK 296/361 are in England. Therefore it makes it close to impossible to work out if the distribution across the four counties is really that different when comparing the percentages within each reduction category.
+
+The overall percentages would only make sense to compute where we were interested in combining these two variables together - perhaps to form a new composite variable - as from these overall percentages we cannot understand how the two variables relate to each other.
+
+Remember that the "row" and the "column" percentages refer only to the orientation of the variables in the table. The 'correct' percentages would become the "row" percentages should we have decided to put the countries as the variable making up the rows, and the CO2 reduction categories as the variable making up the "columns".
+
+```{r vs_ui, context="render",echo=FALSE}
+
+  selectInput("percent_type2",label="Type of Percentage",choices = c("row","column"="col","overall"="all"))
+  gt_output("crosstab2")
+
+```
+
+```{r sum_table_cat2, context="server",echo=FALSE}
+
+
+output$crosstab2<-render_gt({
+  ghg_2022 %>%
+  tabyl(Country,CO2_Reduction_from_2005) %>%
+      adorn_percentages(denominator = input$percent_type2)%>%
+      adorn_pct_formatting() %>%
+      adorn_ns(format_func = function(x)paste("n =",x)) %>%
+  gt()
+})
+
+```
+
+A similar choice is required when producing visualisations, previously it did not matter whether we plotted frequencies or percentages as visually this would end in the same result.
+
+When dealing with two (or more) variables then plotting the frequencies is more or less equivalent to plotting the "overall" percentages - where it may help to partition the overall dataset into subgroups based on the two variables, but it does not help us understand the relationship between those variables. The waffle plot or tree map approach is also one that only really works when dealing with this structure of having a single variable; or where we are partitioning the full data into subgroups rather than for understanding the relationship between variables.
+
+Stacked bar charts come into their own here in this case where we are comparing an ordinal categorical variable, as it lets us accumulate between adjacent categories from the top or the bottom of the stack so that we can start visually comparing, for example, those with "40% or lower" reduction emissions - not just those with "30% or lower". Making visual comparisons between pie charts is something which is a challenge - there is no way to do this intuitively.
+
+```{r v22_ui, context="render",echo=FALSE}
+
+  selectInput("cat_plot2",label = "Type of Visualisation",
+              choices =choices2[-3])
+  selectInput("num_t2",label = "Frequencies or Percentages?",
+              choices =c("Frequencies","Percentages"))
+  
+  plotOutput("catplot2")
+
+
+```
+
+```{r v22_server,context="server"}
+  
+ sum_tab2<-   ghg_2022 %>%
+  group_by(Country,CO2_Reduction_from_2005) %>%
+      summarise(n=n()) %>%
+  mutate(p=n/sum(n))
+
+output$catplot2 <- renderPlot({
+  if(input$cat_plot2=="bar")  {
+                if(input$num_t2=="Frequencies"){
+    p1<-ggplot(sum_tab2,aes(x=Country,y=n,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = FALSE,col="black",position="dodge")+
+          scale_fill_brewer(palette="Set2")+
+          theme_light()
+                }
+                if(input$num_t2!="Frequencies"){
+   p1<- ggplot(sum_tab2,aes(x=Country,y=p,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = FALSE,col="black",position="dodge")+
+          scale_fill_brewer(palette="Set2")+
+          theme_light()+
+            scale_y_continuous(labels=scales::percent)
+                }
+      }
+      if(input$cat_plot2=="stacked_bar")  {
+                if(input$num_t2=="Frequencies"){
+    p1<- ggplot(sum_tab2,aes(x=Country,y=n,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = TRUE,col="black")+
+          scale_fill_brewer(palette="Set2")+
+          theme_light()
+                }
+                if(input$num_t2!="Frequencies"){
+   p1<-  ggplot(sum_tab2,aes(x=Country,y=p,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = TRUE,col="black")+
+          scale_fill_brewer(palette="Set2")+
+          theme_light()+
+            scale_y_continuous(labels=scales::percent)
+    
+                }
+      }
+
+      if(input$cat_plot2=="pie")  {
+             if(input$num_t2=="Frequencies"){   
+ p1<-ggplot(sum_tab2,aes(x=1,fill=CO2_Reduction_from_2005,y=p))+
+  geom_col(col="black",alpha=0.8)+
+  coord_polar("y", start=0)+
+  scale_fill_brewer(palette="Set2")+
+  theme_minimal()+
+  scale_x_continuous(breaks=NULL)+
+  scale_y_continuous(breaks=seq(0,1,by=0.1),labels=scales::percent)+
+   facet_wrap(~Country,scales="free")
+             }
+                if(input$num_t2!="Frequencies"){
+ p1<- ggplot(sum_tab2,aes(x=1,fill=CO2_Reduction_from_2005,y=n))+
+  geom_col(col="black",alpha=0.8)+
+  coord_polar("y", start=0)+
+  scale_fill_brewer(palette="Set2")+
+  theme_minimal()+
+  scale_x_continuous(breaks=NULL)+
+   facet_wrap(~Country,scales="free")
+                }
+      }
+    if(input$cat_plot2=="tree_map")  {
+    treemap(sum_tab2,
+            index=c("Country","CO2_Reduction_from_2005"),
+            vSize="n",
+            type="index",
+            vColor="CO2_Reduction_from_2005",
+            palette = "Set2",
+            bg.labels=c("white")
+            )  %>% print()
+    }
+    if(input$cat_plot2!="tree_map" & input$cat_plot2!="waffle")  {
+      print(p1)
+    }
+      })
+ 
+    
+
+```
+
+## Comparing Two Numeric Variables
+
+When considering the relationship between two numeric variables there is, thankfully, a much more straightforward choice to be made as our first step. There is only really one immediately obvious exploratory plot to explore - a scatter plot.
+
+Let's consider the relationship between the CO2 emissions and the population of the county. The conventional wisdom would be to place the variable we might consider to be our "outcome" or "response" variable on the y axis, and the variable we would consider to be our "explanatory" or "predictor" variable on the x axis, to help visually link the direction of the relationship between variables. In this case the direction is relatively clear - we would be considering emissions as the outcome variable and population as the explanatory variable - we would expect the carbon emissions to increase as the population increases. There may be an argument for an indirect link in the opposite direction perhaps; if carbon emissions became extremely high then there may be some impact on population numbers; but this is a much less likely direction to be considering here. There may be cases where there is really no clear choice for which variable is the "outcome" - when considering the link between population and area for example - and in this case it does not matter so much which orientation we would choose to place our two variables.
+
+```{r}
+(ggplot(data=ghg_2022,aes(x=Mid.year.Population..thousands.,y=Annual.CO2.Total,county=Local.Authority))+
+  geom_point()+theme_light()) %>% ggplotly()
+```
+
+We can immediately see what appears to be a very strong looking correlation between the two variables - as population increases so does the annual CO2 emissions.
+
+We may want to add trend lines to the plot, to help us understand if the relationship appears to be consistently linear, or if there is curvature. Either by overlaying a simple straight 'line of best fit', and seeing how far the trend may deviate from this, or by adding a line based on some data smoothing function, to see if this would suggest any deviation from a consistent straight line.
+
+In the plot below you can choose to add a trend line based on a simple straight line relationship, a smoothed curve using either a generalised additive model ('gam'), or a moving average. The latter two options will broadly produce the same type of interpolated line - the moving average model is a little more conservative, and a better choice for smaller datasets, whilst the 'gam' method would be more likely to identify localised patterns within larger datasets (\>1000 observations) but may be a little too easily influenced by individual observations in smaller datasets.
+
+```{r trd_in,context="render"}
+selectInput("trendline","Trendline?",choices=c("None","Linear"="lm","Smooth"="gam","Moving Average"="loess"))
+plotlyOutput("trend")
+```
+
+```{r trd_out,context="server"}
+output$trend<-renderPlotly({
+  
+  (ggplot(data=ghg_2022,aes(x=Mid.year.Population..thousands.,y=Annual.CO2.Total))+
+  geom_point(aes(county=Local.Authority))+theme_light()+
+ {if(input$trendline!="None") geom_smooth(method=input$trendline)}
+  ) %>% ggplotly()
+})
+```
+
+In this case the choice of trend line does not seem to matter too much - it seems as if the relationship is indeed very close to a simple linear straight line, as the population of a county increases by (x) thousand the CO2 emissions increase by (y) kilo tonnes, with very evidence of curvature or deviation from this general trend.
+
+### Correlation
+
+You are probably also familiar with the concept of a 'correlation coefficient' which is a summary statistic to assess if two numeric variables are positively correlated (i.e. as one variable increases the other also increases; a positive value for the correlation coefficient), negatively correlated (i.e. as one variable increases the other decreases; a negative value for the correlation coefficient), or uncorrelated (no relationship between the variables a value close to zero).
+
+The further away the coefficient is from zero, the stronger relationship is - it is often common to see a correlation matrix, which will assess all pairwise correlations between numeric variables in your dataset:
+
+```{r}
+ghg_2022 %>%
+  ungroup() %>%
+  select(Area..km2.,Mid.year.Population..thousands.,Annual.CO2.Total) %>%
+      cor() %>%
+        data.frame() %>%
+        gt(rownames_to_stub = TRUE)%>%
+          fmt_number()
+```
+
+This matrix shows us that:
+
+-   All pairwise correlations between our three variables (area, population, and CO2 emissions) are positive
+-   The correlation between CO2 emissions and population is very strong - generally this would be considered a correlation of 0.7 or higher
+-   The correlation between CO2 emissions and area is moderate - generally as a rule of thumb this could be considered a correlation of 0.25-0.5
+-   The correlation between population and area is moderate - generally as a rule of thumb this could be considered a correlation of 0.25-0.5
+
+Also notice that the correlation between a variable and itself is equal to 1; area is of course perfectly correlated to area! And that the "top right" and "bottom left" corners of the matrix are identical - the correlation between area and population, is identical to the correlation between population and area. So despite being a table of 9 numbers, there are only 3 that are of any interest to us.
+
+Like with the scatter plot, this is the immediately obvious choice for a summary statistic when considering two numeric variables, but therere are lots of different variations of the correlation coefficient. The "default" correlation method that you are likely familiar with, and has been applied in the plot above, isthe "Pearson" method. Some of the most common alternatives, "Spearman" & "Kendall", are summarised in the table below with the rationale for when they might be applied.
+
+```{r}
+
+data.frame("Correlation Type"=c("Pearson (rho)","Spearman (rho)","Kendall (tau)"),
+           "Variables"=c("Continuous numeric data only","Continous or ordinal data","Continous or ordinal data"),
+           "Relationship Type"=c("Linear only","Monotonic (i.e. can be curved providing curve is either strictly increasing or strictly decreasing","Monotonic (i.e. can be curved providing curve is either strictly increasing or strictly decreasing"),
+           "Pros"=c("Highest statistical 'power', easiest to interpret and links directly to other statistical concepts (e.g. R2)","Robust to either the presence or absence from linearity, if conditions for Pearson are satisfied then Spearman is likely to be a very similar value, so no net loss of choosing this option","Most robust to 'imperfections'"),
+           "Cons"=c("Very sensitive to presence of outliers","Harder to interpret directly, or to link to other methods. Over-estimates correlation in presence of ties.","Will always show the 'weakest' correlation of the three methods even where conditions are satisfied")) %>% gt()
+
+
+```
+
+In statistics we often see this trade-off in choice of methodologies between 'power' and 'robust-ness' - the "Kendall" method for correlation is perhaps the most robust, but the least powerful - it will always be the smallest of the 3 measures. Whilst the "Pearson" method is the most powerful but least robust, it is highly sensitive to outliers in small data sets or to non linear trends. It is often incorrectly claimed that "Pearson" correlation also requires the variables to be normally distributed; but this is not actually true.
+
+If the conditions for the Pearson method are satisfied (a consistent linear relationship, with no, or very few, data points sharing the exact same value, then it is likely that this version of the correlation coefficient will be the largest, providing the strongest evidence of correlation, but that all three methods will give broadly similar results.
+
+And this is exactly what we see when computing the correlation coefficients on this comparison between CO2 emissions and population - all three methods have high positive values for the correlation coefficient and our general inference about the relationship would be the same - but the largest value for the coefficient comes from the Pearson method (0.91), then the Spearman (0.88) and then the Kendall (0.70). You can explore how the choice of correlation method affects the values in the interactive table below:
+
+```{r cor_in,context="render"}
+  selectInput("cor_m","Correlation Method",choices =c("pearson","spearman","kendall"),selected = "pearson")
+gt_output("cor_tab1")
+```
+
+```{r cor_tab,context="server"}
+output$cor_tab1<-render_gt({ghg_2022 %>%
+  ungroup() %>%
+  select(Area..km2.,Mid.year.Population..thousands.,Annual.CO2.Total) %>%
+      cor(method=input$cor_m) %>%
+        data.frame() %>%
+        gt(rownames_to_stub = TRUE,caption=paste("Correlation using",input$cor_m,"method"))%>%
+          fmt_number()})
+```
+
+Remember that these pairwise correlations may be hiding a more complex relationship - either one that is not monotonic or one that may be moderated, or influenced, by other variables. Take the relationship between area and population. The Spearman and Kendall coefficients for this relationship are both very close to zero, and in fact negative.
+
+Within this dataset we may want to dig into the relationships by country, and it becomes clear from this that the relationship between area and population within Northern Ireland is different from that seen in the other countries, where there is moderately strong negative correlation within Northern Ireland - those counties with the highest population have the lowest area and vice versa.
+
+```{r cor_in2,context="render"}
+  selectInput("cor_m2","Correlation Method",choices =c("pearson","spearman","kendall"),selected = "pearson")
+  plotlyOutput("cor_plot1")
+```
+
+```{r cor_plot,context="server"}
+
+output$cor_plot1<-renderPlotly({
+  
+  
+cv<-ghg_2022 %>%
+  group_by(Country) %>%
+    summarise(cor=cor(Area..km2.,Mid.year.Population..thousands.,method=input$cor_m2)) %>%
+        mutate(Country2=paste(Country,":",round(cor,3)))
+
+  
+(  ghg_2022%>%
+  inner_join(cv)%>%
+ggplot(aes(x = Area..km2.,y=Mid.year.Population..thousands.,col=Country,county=Local.Authority))+
+  geom_point(alpha=0.5,size=4)+
+  facet_wrap(~Country2,scales="free")+
+  theme_light()+
+  scale_color_brewer(palette="Dark2")+
+  theme(strip.text = element_text(size=14))+
+  ggtitle(paste("Within Country Correlations:",input$cor_m2,"method")))%>%ggplotly()})
+```
+
+Also note that the strength of this relationship in Northern Ireland almost entirely comes from two 'high leverage' points - Belfast is geographically very small, but has a large population; Fermanagh and Omagh is geographically very large but has a small population. Were we to remove one, or both, of these counties from the plot the relationship would likely look very different. If we were to remove the country of "Newry, Mourne and Down", right in the middle of the plot for Northern Ireland then the relationship would barely change at all, this would be considered a 'low leverage' point. Experimenting with what happens to trends when we remove high leverage observations is what is known as a sensitivity analysis, and can be a really useful stage in exploratory data analysis, particularly if we are considering removing any outliers.
+
+In this it would make no sense at all to exclude these observations from our analysis, they could definitely be considered valid observations, case neither of these observations from the same population as the remainder of our data. But it is worth being aware of how much of an impact individual observations may have on influencing our conclusions.
+
+If the conditions are not satisfied then the correlation coefficients of the three methods may vary substantially from each other. Should there be a large difference between the Pearson and Spearman estimates, this is usually an indication that the Pearson results are unlikely to provide a coherent summary of the correlation valid; although that difference does not necessarily imply that the value of the Spearman correlation would be coherent in its place.
+
+Remember that all of these methods of correlation are useless if the relationship between the two variables does not strictly increase or decrease - look at the plot below for an example of some "uncorrelated" data according to all of the methods!
+
+```{r}
+set.seed(485796)
+x<-1:20
+y<-rnorm(20,mean=(x**2)-(21*x)+100,5)
+
+cors<-data.frame(x=x,y=y) %>%
+  summarise("Pearson"=cor(x,y),
+            "Spearman"=cor(x,y,method="spearman"),
+            "Kendall"=cor(x,y,method="kendall"))
+
+data.frame(x=x,y=y) %>%
+ggplot(aes(x=x,y=y))+
+  geom_point(size=3,shape=16)+
+  theme_light()+
+  annotate(geom="label",x=18,y=-5,label=paste0("Pearson = ",round(cors$Pearson,2),
+                                         "\nSpearman = ",round(cors$Spearman,2),
+                                         "\nKendall = ",round(cors$Kendall,2)))+
+  ggtitle("Two 'Uncorrelated' Variables...")
+
+```
+
+In practice, simply looking at the relationship through the scatter plot is a vastly superior method of understanding your data and the relationship between your variables rather than calculating any of these correlation coefficient, as it will become clear exactly the nature of the relationship and how that relationship may deviate from certain sets of assumptions required for different statistical models.
+
+With an additional the big advantage of scatter plots being how easy it is to extend them further beyond just a simple x/y relationship.
+
+### Going further with scatter plots
+
+There are lots of questions we should be asking about these sort of relationships:
+
+-   Is the variability away from the trend consistent or does it vary (e.g. is there higher variation when we have higher values?)
+-   Does the relationship change according to particular groups?
+-   Are there values which do not fit into the trend? Are these mistakes, or are there other factors which may explain why they are different?
+-   If there are other factors, can we start to bring in additional variables to explore the relationship in 3 (or more) dimensions
+
+From the plots we have made so far there are some questions or next steps that we might take from our original plot, once we have acknowledged the clear strong trend that exists:
+
+-   The density of points is very high in the bottom left of the plot - there are lots of counties with relatively small populations and only a small number of counties with larger populations than others. Birmingham, North Yorkshire and Leeds all have points which are very distinct from the others. At the same time the deviation from the trend looks like it seems to get larger as we increase the population. Look at the point for North Yorkshire which appears to be something of an outlier compared to the trend. If you were to compare it to Glasgow, for example, both have very similar populations, but the emissions for North Yorkshire are around 3500 kt/CO2 and for Glasgow around 1950 kt/CO2. The emissions from North Yorkshire are similar to that of Birmingham, where the population is almost twice as large.
+
+-   Having uniformly sized and styled points for all counties may be a little limited. We could bring in additional variables to map to the size and colour of the points - perhaps different colours for the four nations of the UK, and different sizes based on the area of the county?
+
+We saw this sort of trend a little with the CO2 variable, but it is extremely pronounced with the population variable. This is the exact sort of pattern where we would want to consider a log transformation for population, or potentially for both of the variables. This will help us to see inside the dense cloud of points currently at the bottom left rather than only focusing on the small number of points with high values. There are other transformations beyond log transformations that we could choose to explore - and there will be particular scientific contexts where different transformations will be scientifically coherent - but it is usually a good idea to consider whether that transformation can be interpreted coherently rather than just being a 'good fit' for the data. Log transformations are nice in this way as they can, with a little bit of additional thought, usually be interpreted.
+
+Considering a log transformation for population only, the question the plot is assessing changes from whether "as the size of the population by increases by (x) people does the CO2 emissions increase by (y) kt?" on the original scale, to a new question of "as the size of the population **doubles in size** does the CO2 emissions increase by (y) kt?". Remember though that this sort of transformation will only work when the variable is always larger than zero, as we cannot think about logarithms and rates of change when the values can plausibly be negative or equal to zero.
+
+You can explore these options, and more, by adjusting the selections in the interactive plot below.
+
+```{r v5_ui, context="render",echo=FALSE}
+fluidRow(column(
+  selectInput("x1","Variable for x axis",choices =c("Population"="Mid.year.Population..thousands.","Area"="Area..km2.")),
+  selectInput("x_t","Transform x axis?",choices =c("No","log"),selected = "log"),
+  selectInput("y_t","Transform y axis?",choices =c("No","log"),selected = "log"),width=6),
+column(
+  selectInput("psize","Point Size",
+              choices =c("Fixed","Population"="Mid.year.Population..thousands.","Area"="Area..km2."),
+              selected = "Area..km2."),
+  selectInput("pcol","Point Colour?",choices =c("Fixed","Country","Region","Reduction since 2005"="CO2_Reduction_from_2005"),
+              selected="Country"),width=6),
+)
+  plotlyOutput("plot_scatter")
+
+```
+
+```{r v5_server,context="server"}
+  output$plot_scatter <- renderPlotly({
+    ghg_2022<-data.frame(ghg_2022)
+     ghg_2022$y<-ghg_2022$Annual.CO2.Total
+    ghg_2022$No<- ghg_2022$Fixed<-1
+    ghg_2022$x<-ghg_2022[,input$x1]
+      ghg_2022$size<-ghg_2022[,input$psize]
+        ghg_2022$colour<-ghg_2022[,input$pcol]
+        
+( ggplot(ghg_2022,aes(y=y,x=x))+
+    geom_point(aes(colour=colour,size=size,county=Local.Authority),alpha=0.6)+
+    {if(input$x_t=="log") scale_x_log10()}+
+    {if(input$y_t=="log") scale_y_log10()}+
+    scale_size_continuous(range = c(0.5,3.5))+
+    theme_light()+
+    labs(x=input$x1,y=paste("Annual CO2 Emissions",ifelse(input$y_t=="No","",input$y_t)))+
+    ggtitle(paste("Annual CO2 Emissions 2022 (kt) by",input$x1)) ) %>% 
+      ggplotly()
+  })
+```
+
+This exploration will help us to understand even more about our data!
+
+-   The large deviation in the trend for North Yorkshire may be linked to it's very large area
+-   The biggest outlier when assessed on the log scale, may in fact be the City of London, which has a very low population but a high level of emissions. This itself is likely to have some clear explanations - the number of people working within the City of London is extremely high, but the number of permanent residents is low. There may exist some variable to quantify this, based on economic activity, but this is not included within the dataset that we have. Sometimes deviations we see from the trends would require additional data to confirm.
+
+### Exploring Trends Over Time
+
+'Time' is perhaps a special case of a numeric variable - and in fact in different sections of this tutorial we have in fact considered "year" as a numeric or sometimes as a categorical variable. In general if we are dealing with more than a small number of numeric observations we would want to consider time broadly more like a numeric variable. Beyond this there are also a few additional things to consider when dealing with time, and particularly when dealing with data recorded on a more regular basis than once per year:
+
+-   'Conventional' wisdom would suggest always placing time under the y axis and plotting trends over time as a line connecting the observations, rather than plotting points for each observation
+-   When dealing with data recorded at very frequent intervals plotting every single recording is likely to give a lot of noise; some decisions would have to be made about what level to aggregate the data to - every minute? every hour? every day?. It is worth exploring the data and producing summaries at all of these levels, and any other relevant ones, to better understand the periodicity and auto-correlation in the trends over time. Periodicity refers to consistently repeating patterns - e.g. temperatures getting warmer in the day and then colder in the night; while auto-correlation refers to how correlated adjacent observations would be - e.g. the temperature now is likely to be extremely highly correlated to the temperature 10 seconds ago; somewhat correlated to the temperature in 24 hours time; and, after accounting for the seasonal effects (which are part of the periodicity), very weakly or not at all correlated to the temperature in one months time. Plotting the data at different time resolutions lets us explore these components of time series, which are very important to understand before moving to formal time series modelling.
+-   When joining together data to form a line over time there is a visual question of whether to join each data point directly together, or whether to create steps, like a staircase. Often this will depend on whether you have regularly spaced data or 'event' data. If the change in the variable happen gradually between the time points, like may be expected where there are regular intervals, then a straight line would make more sense. If the change in the value happens at the exact time point being recorded then it would not make sense to interpolate between the points, so drawing 'steps' may make more sense.
+-   The 'area under the curve' is often a useful summary statistic to consider when dealing with trends over time. Within different contexts for different variables being plotted against time it can have different direct interpretations, but in general it is a measure of intensity. A variable which quickly rises to a high peak value, and then quickly falls back down, will have a lower "AUC" compared a variable which may reach a lower peak but remains around that peak for a longer period of time.
+
+Let's take a look at a slightly different extract of the data we have seen already - this time looking at the total CO2 emissions per country over the full time period of the data 2005-2022.
+
+```{r}
+ghg_yearly<-ghg_allyears %>%
+  group_by(Country,Calendar.Year) %>%
+    summarise(Annual.CO2.Total=sum(Annual.CO2.Total),
+              Mid.year.Population..thousands.=sum(Mid.year.Population..thousands.),
+              Area..km2.=sum(Area..km2.))
+
+
+DT::datatable(ghg_yearly)
+```
+
+```{r time_ui1, context="render",echo=FALSE}
+
+
+  selectInput("plot_type_time1",label = "Type of Visualisation",
+              choices = c("point",
+                          "line",
+                          "step"              ))  
+  plotlyOutput("time1")
+
+```
+
+```{r time_server1,context="server"}
+
+output$time1 <- renderPlotly({
+    ghg_yearly<-ghg_allyears %>%
+  group_by(Country,Calendar.Year) %>%
+    summarise(Annual.CO2.Total=sum(Annual.CO2.Total),
+              Mid.year.Population..thousands.=sum(Mid.year.Population..thousands.),
+              Area..km2.=sum(Area..km2.))
+   
+    
+   ( ggplot(ghg_yearly)+
+      {if(input$plot_type_time1=="point")geom_point(aes(y=Annual.CO2.Total,x=Calendar.Year,colour=Country))}+
+      {if(input$plot_type_time1=="line")geom_line(aes(y=Annual.CO2.Total,x=Calendar.Year,colour=Country))}+
+      {if(input$plot_type_time1=="step")geom_step(aes(y=Annual.CO2.Total,x=Calendar.Year,colour=Country))}+
+       theme_light()+
+       scale_x_continuous(breaks=2005:2022)) %>% ggplotly()
+    
+  })
+
+```
+
+### Derivations
+
+As well as the choice of visual method, there are further data manipulations, derivations and transformations which will help us to understand the trends better here. 
+Specifically to time series we could consider plotting the change over time since baseline, in 'real terms' or in 'percentage terms' instead of the actual values on the y axis. Plotting this in percentage terms is a good option here to make a fair comparison in the trend across the four countries, at the trade-off of being able to easily read off from the plot the actual CO2 values.
+
+The log or square root transformations are not especially useful in this plot! But adjusting the emissions per capita, or per area, are perhaps better options to help make a much fairer comparison across the 4 groups, which have vastly different areas and populations. This requires us to derive new variables, in this case by dividing the emissions by the population or area.
+
+And when looking "per capita" we can see very similar trends across the four countries, with the line almost following in parallel to each other, all generally decreasing over time. When looking at the percentage change over time the trend is very similar for three of the four countries - with the lines not just parallel but in fact almost identical over time. The difference is from Northern Ireland - where the percentage reduction over time was lower, with emissions in fact increasing for the first few years of this data.
+
+```{r time_ui2, context="render",echo=FALSE}
+
+
+  selectInput("plot_type_time",label = "Type of Visualisation",
+              choices = c("line",
+                          "step"              ))
+  
+  selectInput("trans_t",label = "Transform Variable",
+              choices = c("None"="none",
+                          "Logarithmic"="log",
+                          "Square Root"="sqrt",
+                          "Per Capita"="capita",
+                          "Per Area"="area",
+                          "Change from baseline"="rebase",
+                          "% change from baseline"="rebase_per"
+              )
+
+              
+  )
+  plotlyOutput("time")
+
+```
+
+```{r time_server2,context="server"}
+
+output$time <- renderPlotly({
+    ghg_yearly<-ghg_allyears %>%
+  group_by(Country,Calendar.Year) %>%
+    summarise(Annual.CO2.Total=sum(Annual.CO2.Total),
+              Mid.year.Population..thousands.=sum(Mid.year.Population..thousands.),
+              Area..km2.=sum(Area..km2.))
+    
+    ghg_yearly<-ghg_yearly %>%
+
+      {if(input$trans_t=="capita")mutate(.,Annual.CO2.Total=(Annual.CO2.Total/Mid.year.Population..thousands.))else . }%>%
+      {if(input$trans_t=="area") mutate(.,Annual.CO2.Total=(Annual.CO2.Total/Area..km2.))else . }%>%
+    {if(input$trans_t=="rebase") group_by(.,Country) %>%
+                        mutate(Annual.CO2.Total=(Annual.CO2.Total-
+                                                           mean(Annual.CO2.Total[Calendar.Year==2005],na.rm=T))) else . }%>%
+      {if(input$trans_t=="rebase_per") group_by(.,Country) %>%
+          mutate(Annual.CO2.Total=-1+(Annual.CO2.Total/
+                                             mean(Annual.CO2.Total[Calendar.Year==2005],na.rm=T))) else . }
+    
+   ( ggplot(ghg_yearly)+
+      {if(input$plot_type_time=="line")geom_line(aes(y=Annual.CO2.Total,x=Calendar.Year,colour=Country))}+
+      {if(input$plot_type_time=="step")geom_step(aes(y=Annual.CO2.Total,x=Calendar.Year,colour=Country))}+
+
+      {if(input$trans_t=="log") scale_y_log10()}+
+    {if(input$trans_t=="sqrt") scale_y_sqrt()}+
+       theme_light()+
+       scale_x_continuous(breaks=2005:2022)) %>% ggplotly()
+    
+  })
+
+```
+
+
+
+## Summary
+
+In this workbook we have covered a lot of different methods for data exploration, in not a lot of detail per method. To an extent that mirrors the whole process of exploratory data analysis - in practice we want to be quick, and nimble, at producing lots of different summaries of our data and be able to get some quick insights into whether there are any problems with our data, how the trends and patterns in our data look and what directions we may be going towards next.
+
+Depending on your own research questions you may have a clear idea ahead of time of the theoretical models you want to test from your data; or you may have a large dataset with many variables and a very open-ended set of hypotheses. While the amount of time spent on EDA for these two tasks may be different - the importance of this phase and the sort of methods that an analyst needs to be aware of is not. And the best way to get a handle on this phase of the analysis is without doubt to get your hands dirty by exploring multiple datasets on your own...
+
+## Exercises
+
+Now it's time for you to start exploring some data to see what you can find. The dataset we will be using concerns earthquakes observed in an area around Fiji since 1964, obtained from Harvard University Department of Geophysics. A summary of the variables is below:
+
+```{r}
+
+data.frame(column=c("lat"	,"long","depth","mag","stations","order"),
+           details=c("Latitude of earthquake","Longitude of earthquake","Depth (km)",
+                     "Richter Scale Magnitude","Number of stations reporting the earthquake",
+                     "Order in which the earthquakes occurred"),
+           type=c("numeric"))%>%gt::gt()
+
+```
+
+You can access a tool to explore the data here: <https://shiny.stats4sd.org/earthquakes__dev/>
+
+This will let you view and sort the data, produce summary statistics and visualisations, and then filter the data or create categories based on the original variables that could be used in your summary statistics and visualisations.
+
+If you are trying to improve your skills with any specific data analysis software or tools (R/Python/Stata etc), then I would strongly encourage you to download the raw data below (INSERT LINK TO DOWNLOAD FILE) and explore the data using that tool. Try to recreate what you have been able to produce using the interactive app, and then to keep exploring further beyond those pre-built capabilities!
+
+You are welcome to explore the data in whatever way you see fit; depending on what you might find interesting or what patterns you start to uncover.
+
+But to help guide your explorations, here are some questions that a researcher might have when getting started with a project based on this data:
+
+-   Does the structure of the data make sense, and does it match what would be expected from the description above?
+-   Are there certain properties of the data that are unexpected or might be problematic?\
+-   How could the distribution of the "magnitude" and "depth" variables be described?
+-   How commonly observed are earthquakes that would be classified as “moderate” (5-6 magnitude on the Richter scale) or “strong” (6 and above)?
+-   Does there look like there relationships between the depth or number of stations reporting the earthquake with the magnitude of the earthquakes?
+-   Are there any trends in the magnitude, the depth, or the number of stations reporting each earthquake over time?
+-   Are there any patterns in the locations of the earthquakes over space, and does the magnitude, depth or number of stations reporting vary according to the locations?
+
+## Resources
+
+Tukey, J. W. (1977). Exploratory Data Analysis
+
+A 'classic' text which popularised many of the exploratory techniques covered in this session, which still makes many relevant general points.
+
+<https://www.stat.cmu.edu/~hseltman/309/Book/chapter4.pdf> A slightly more technical introduction to EDA then is presented here
+
+<https://r4ds.had.co.nz/exploratory-data-analysis.html>
+
+<https://www.youtube.com/watch?v=QiqZliDXCCg>
