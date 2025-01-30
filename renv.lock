@@ -768,18 +768,6 @@
       ],
       "Hash": "d6db1667059d027da730decdc214b959"
     },
-    "gridBase": {
-      "Package": "gridBase",
-      "Version": "0.4-7",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "graphics",
-        "grid"
-      ],
-      "Hash": "c6b1256546a22b4b9f4fae3ba5117b97"
-    },
     "gridExtra": {
       "Package": "gridExtra",
       "Version": "2.3",
@@ -957,29 +945,6 @@
         "uuid"
       ],
       "Hash": "99df65cfef20e525ed38c3d2577f7190"
-    },
-    "igraph": {
-      "Package": "igraph",
-      "Version": "2.1.4",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "Matrix",
-        "R",
-        "cli",
-        "cpp11",
-        "grDevices",
-        "graphics",
-        "lifecycle",
-        "magrittr",
-        "methods",
-        "pkgconfig",
-        "rlang",
-        "stats",
-        "utils",
-        "vctrs"
-      ],
-      "Hash": "db7352c3d239d0a319d2e3d0d040ed16"
     },
     "isoband": {
       "Package": "isoband",
@@ -1945,25 +1910,6 @@
         "xfun"
       ],
       "Hash": "3ec7e3ddcacc2d34a9046941222bf94d"
-    },
-    "treemap": {
-      "Package": "treemap",
-      "Version": "2.4-4",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "RColorBrewer",
-        "colorspace",
-        "data.table",
-        "ggplot2",
-        "grid",
-        "gridBase",
-        "igraph",
-        "methods",
-        "shiny"
-      ],
-      "Hash": "4f81151a925c017e2cdd712cbfaf3d09"
     },
     "tzdb": {
       "Package": "tzdb",

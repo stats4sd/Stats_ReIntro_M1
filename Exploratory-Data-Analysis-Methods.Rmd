@@ -11,7 +11,7 @@ library(DT)
 library(plotly)
 library(shiny)
 library(waffle)
-library(treemap)
+#library(treemap)
 library(gt)
 library(janitor)
 library(yaml) 
@@ -598,13 +598,13 @@ output$plot2 <- renderPlot({
                 }
       }
     if(input$plot_type2=="tree_map")  {
-    treemap(sum_tab,
-            index=c("CO2_Reduction_from_2005"),
-            vSize="n",
-            type="index",
-            palette = "Set2",
-            bg.labels=c("white")
-            )  %>% print()
+  #  treemap(sum_tab,
+  #          index=c("CO2_Reduction_from_2005"),
+  #          vSize="n",
+  #          type="index",
+  #          palette = "Set2",
+  #          bg.labels=c("white")
+  #          )  %>% print()
     }
     if(input$plot_type2!="tree_map" & input$plot_type2!="waffle")  {
       print(p1)
@@ -860,14 +860,14 @@ output$catplot2 <- renderPlot({
                 }
       }
     if(input$cat_plot2=="tree_map")  {
-    treemap(sum_tab2,
-            index=c("Country","CO2_Reduction_from_2005"),
-            vSize="n",
-            type="index",
-            vColor="CO2_Reduction_from_2005",
-            palette = "Set2",
-            bg.labels=c("white")
-            )  %>% print()
+ #   treemap(sum_tab2,
+ #           index=c("Country","CO2_Reduction_from_2005"),
+#            vSize="n",
+#            type="index",
+##            vColor="CO2_Reduction_from_2005",
+            #palette = "Set2",
+            #bg.labels=c("white")
+            #)  %>% print()
     }
     if(input$cat_plot2!="tree_map" & input$cat_plot2!="waffle")  {
       print(p1)
