@@ -120,11 +120,7 @@ When first looking through our data there are a lot of things we want to be cons
 
 -   Does the number of rows match what we expect (e.g. if we are expecting one row of data per hour, do we always have 24 observations per day?)
 
--   
-
-    ```         
-    Do we have any duplicated or obsolete rows or columns in the data?
-    ```
+-   Do we have any duplicated or obsolete rows or columns in the data?
 
 While a lot of this may seem fairly basic, there are countless examples of data analysis mistakes, some minor some extremely major, made because analysts simply did not spend the time to look at and understand the data they were working with and ploughed straight through into the analysis. e.g. <https://www.bbc.co.uk/news/technology-54423988> ; <https://stats4sd.org/blog/22> ; <http://svmiller.com/blog/2020/04/reinhart-rogoff-ten-years-later-replication/> ).
 
