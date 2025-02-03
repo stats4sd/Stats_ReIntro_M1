@@ -54,7 +54,7 @@ ghg_allyears<-readRDS("data/ghg_summary_data_all.RDS")
 ghg_una<-readRDS("data/ghg_una.RDS")
 
 
-ts<-readRDS("data/ghg_una.RDS")
+ts<-readRDS("data/ghg_ts.RDS")
 
 
 
@@ -463,7 +463,7 @@ Limitations=c("Cannot infer averages or variability or shape of distribution; po
     locations = cells_body(columns = image),
     fn = function(x) {
       local_image(
-        filename = paste0("../img/",x,".png"),
+        filename = paste0("img/",x,".png"),
         height = 75
       )}
       )%>%
@@ -594,13 +594,13 @@ output$plot2 <- renderPlot({
                 }
       }
     if(input$plot_type2=="tree_map")  {
-  #  treemap(sum_tab,
-  #          index=c("CO2_Reduction_from_2005"),
-  #          vSize="n",
-  #          type="index",
-  #          palette = "Set2",
-  #          bg.labels=c("white")
-  #          )  %>% print()
+    treemap(sum_tab,
+            index=c("CO2_Reduction_from_2005"),
+            vSize="n",
+            type="index",
+            palette = "Set2",
+            bg.labels=c("white")
+            )  %>% print()
     }
     if(input$plot_type2!="tree_map" & input$plot_type2!="waffle")  {
       print(p1)
@@ -856,14 +856,14 @@ output$catplot2 <- renderPlot({
                 }
       }
     if(input$cat_plot2=="tree_map")  {
- #   treemap(sum_tab2,
- #           index=c("Country","CO2_Reduction_from_2005"),
-#            vSize="n",
-#            type="index",
-##            vColor="CO2_Reduction_from_2005",
-            #palette = "Set2",
-            #bg.labels=c("white")
-            #)  %>% print()
+    treemap(sum_tab2,
+            index=c("Country","CO2_Reduction_from_2005"),
+            vSize="n",
+            type="index",
+            vColor="CO2_Reduction_from_2005",
+            palette = "Set2",
+            bg.labels=c("white")
+            )  %>% print()
     }
     if(input$cat_plot2!="tree_map" & input$cat_plot2!="waffle")  {
       print(p1)
