@@ -11,7 +11,7 @@ library(DT)
 library(plotly)
 library(shiny)
 library(waffle)
-#library(treemap)
+library(treemap)
 library(gt)
 library(janitor)
 library(yaml) 
@@ -132,7 +132,7 @@ In this session we are going to explore a public dataset produced by the UK gove
 
 <https://www.gov.uk/government/statistics/uk-local-authority-and-regional-greenhouse-gas-emissions-statistics-2005-to-2022>
 
-<https://assets.publishing.service.gov.uk/media/667ad5b45b0d63b556a4b305/2005-22-uk-local-authority-ghg-emissions.xlsx>
+<https://assets.publishing.service.gov.uk/media/667ad86497ea0c79abfe4bfd/2005-2022-local-authority-ghg-emissions-csv-dataset.csv>
 
 If you downloaded the full dataset from the link above you would see that it has 533,016 rows. The first step, let's just take a look at the data - the first 1000 rows are shown below:
 
