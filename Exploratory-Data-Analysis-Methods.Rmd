@@ -21,6 +21,7 @@ library(gt)
 library(janitor)
 library(yaml) 
 library(Hmisc)
+library(gridExtra)
 knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning=FALSE)
 
 choices<-c("Point"="point",
@@ -112,10 +113,10 @@ ticking exercises. There are no wrong approaches, but you may learn
 different things from being willing and able to explore your data in
 different ways. The goal is simply to learn as much as possible about
 your data and starting to establish the links between how your data
-links to reality, and how your data can mapped against your research
+links to reality, and how your data can be mapped against your research
 questions.
 
-This session we will cover:
+This session will cover:
 
 -   Data familiarisation and checking
 
@@ -141,7 +142,7 @@ noticing about the variables, and their relationship as I talk through.
 
 ![](https://youtu.be/BL3WdUWm1Q8)
 
-A good data explorer needs to be able to comfortably work with your
+A good data explorer needs to be able to comfortably work with any
 data - manipulating it where needed by summarising to different levels,
 correct mistakes, or derive new variables - and to be able to produce a
 flexible range of different visualisations. You might be able to do some
@@ -149,14 +150,14 @@ of this using Excel or Google Sheets, but to do it well and to do it in
 a reproducible and flexible way you will likely need to be using some
 other software tools like R or Python. In the video, and in the
 exercises, I used a simple interactive data exploration tool - built
-using R - to help me work through quickly without needing to do any live
-coding; but at the expense of having full flexibility over everything I
+using R - to help me work quickly without needing to do any live
+coding. But that does come at the expense of having full flexibility over everything I
 might want to do.
 
 In these workbooks all output produced will come from the use of R, and
 all of the code used in the workbooks can be found on GitHub here:
 <https://github.com/stats4sd/Stats_ReIntro_M1>. But the principles are
-identical regardless of which data analysis tool is being used.Whichever
+identical regardless of which data analysis tool is being used. Whichever
 tool is being used for data analysis - it will require that the user is
 familiar enough with it to be able to generate any sort of summary or
 plot or transformation that they might suddenly think could be useful!
@@ -247,6 +248,8 @@ look at the data - the first 1000 rows are shown below:
 DT::datatable(ghg_snap)
 ```
 
+**NOTE: Depending on your screen size and resolution you will only see the first few columns initially but you can scroll right, or use the arrow keys to see the full set of variables** 
+
 From a quick inspection visually of the first few hundred rows of this
 data we can actually learn quite a lot and start to answer some of the
 questions we may have.
@@ -258,7 +261,7 @@ worried that data has been incorrectly duplicated.
 Closer inspection of the data shows why the data looks like this - we
 can see that data is stored as one row per gas per sub-sector per year
 per local authority. And we have three different gases (CO2,CH4 and
-N20), 32 different sub sectors, and 18 years of data. So that's
+N20), 32 different sub-sectors, and 18 years of data. So that's
 potentially up to 1,728 rows per local authority.
 
 So the first 1000 rows will indeed all come from Hartlepool, since the
@@ -306,7 +309,7 @@ ghg_missing %>% gt()
 
 -   If we look more at data restricted to show only the unallocated rows
     the "local authority column" we can see that these are definitely
-    not local authorities! In fact this column instead they provide a
+    not local authorities! This column provides a
     very short description of the context - "Large elec users" or
     "Unallocated consumption". Nearly all the rows for these unallocated
     entries are for the Industry or Domestic sectors although there are
@@ -334,7 +337,7 @@ DT::datatable(ghg_una)
     sub-sectors. Although some of this could be explained by the
     unallocated sources the disparity definitely accounts for a lot more
     than 414 rows! So we might then start to explore whether we have
-    data for each sub sector within each year, for each of the three
+    data for each sub-sector within each year, for each of the three
     greenhouse gases and for each country.
 
 **Extension Exercise** Download the raw data from the link in the
@@ -345,7 +348,7 @@ other.
 ### Data Aggregation & Restriction
 
 To give ourself a slightly smaller task to take on in this workbook, we
-will focus in on aggregated subset of the data designed to meet the
+will focus on an aggregated subset of the data designed to meet the
 needs of a specific research question.
 
 For the remainder of this module we will focus on the relationships that
@@ -361,7 +364,7 @@ careful with the population and area variables in our aggregation
 process! We want to retain this variables in our new data set, but we do
 not want to sum these across all of the different sources, as the values
 of area and population are fixed for each local authority within each
-year
+year.
 
 Below you can explore the aggregated of the data showing the total CO2
 emissions for each county from 2022 (`Annual.CO2.Total`), which is the
@@ -663,7 +666,7 @@ When considering the presence of outliers there are four key questions
 that we need to ask:
 
 -   **Is this a real observation or is this an error?** If it is an
-    error than we should be trying to correct the value, and if that is
+    error then we should be trying to correct the value, and if that is
     not possible then we should exclude the value. Very commonly data
     entry errors may only become apparent when they appear as outliers -
     it is very easy to get decimal places in the wrong position, or add
@@ -672,28 +675,8 @@ that we need to ask:
 -   **If it is real does this observation come from the same underlying
     population as the rest of the observations, and collected using the
     same methodology?** It is possible for data to be 'real' but be
-    incomparable to the rest of our observations - we may be "comparing
-    apples to oranges" by including them side by side. This is something
-    that has been accounted for already in the methodology of this
-    dataset - as there are two different estimates for carbon emissions
-    presented in the raw data - "total carbon emissions" and "carbon
-    emissions under the influence of the local authority". The latter
-    estimate removes data that would make comparisons between the local
-    authorities "unfair" - for the most part this relates to the
-    existence of steelworks and coal-fired power stations, which are
-    individually responsible for large amounts of CO2 emissions, but it
-    would be unfair to attribute these emissions local authority as they
-    would dwarf all other sources of emissions for that authority. Take
-    a look for example at the total emissions from Redcar and
-    Cleveland - where the total emissions is 6 times larger than the
-    "within scope" emissions at the start of the data collection period,
-    but by 2022 the two values are fairly similar. This discrepancy is
-    entirely related to the Teeside Steelworks,
-    <https://en.wikipedia.org/wiki/Teesside_Steelworks>.
-
-```{r}
-readRDS("data/outlierplot.RDS") %>% print()
-```
+    incomparable to the rest of our observations. We may be "comparing
+    apples to oranges" by including them side by side. In the video I highlighted the case of the "City of London", where the actual population is very low but the number of people who work within this area is very low. So considering a "per-capita" adjustment for the City of London based on population is going to be extremely misleading, and potential unhelpful to include within formal analysis.
 
 -   **If it is real are there other variables that may explain why it is
     so different?** The previous plot also helps illustrate a separate
@@ -779,7 +762,7 @@ calculation of standard errors or confidence intervals would be based on
 naive generic assumptions, that may be wildly incorrect. Using errorbars
 is a powerful visual tool to display and communicate the uncertainty in
 estimates that we have made after we have concluded our analysis and
-modelling which and we will cover in later sessions, but it is not a
+modelling which we will cover in later sessions. But it is not a
 good tool to help us understanding the data within this exploratory
 phase.
 
@@ -823,7 +806,7 @@ variable. The three main things we should be considering are:
     sense to group those entries together into a new category. If the
     entries within the "rare" category did not make intuitive sense to
     link together, we could also group them into an existing variable.
-    For example - in the table below if we had had one observation with
+    For example - in the table below if we had one observation with
     a reduction of "20% or less" and one reduction of "60% or more", it
     would make no sense to group those together. But it would make sense
     to combine the "20% or less" and "30-40%" categories together, and
@@ -952,6 +935,7 @@ output$plot2 <- renderPlot({
                 }
       }
     if(input$plot_type2=="tree_map")  {
+      if(input$num!="Frequencies"){
     treemap(sum_tab,
             index=c("CO2_Reduction_from_2005"),
             vSize="n",
@@ -959,6 +943,16 @@ output$plot2 <- renderPlot({
             palette = "Set2",
             bg.labels=c("white")
             )  %>% print()
+      }
+      else{
+            treemap(sum_tab,
+            index=c("CO2_Reduction_from_2005"),
+            vSize="p",
+            type="index",
+            palette = "Set2",
+            bg.labels=c("white")
+            )  %>% print()
+      }
     }
     if(input$plot_type2!="tree_map" & input$plot_type2!="waffle")  {
       print(p1)
@@ -1068,7 +1062,7 @@ suitable for comparison - qq plots for example may be produced for
 different groups, and we may be interested in understanding the results
 within each group, but there is no real benefit in visually comparing
 the relative 'normal-ness' of different groups. In these cases we may
-chose to plot different groups in different panels, rather than overlay
+choose to plot different groups in different panels, rather than overlay
 the groups within the same plot.
 
 ```{r v3_ui, context="render",echo=FALSE}
@@ -1172,7 +1166,7 @@ there is a clear distinction between an 'outcome' variable (like CO2
 emissions) and an 'explanatory' variable (like country), there is a
 clear answer as to which would be the most sensible to consider.
 
-So rhe 'column' percentages from the table above will be the most useful
+So the 'column' percentages from the table above will be the most useful
 here - being able to compare the % of counties falling into each of the
 CO2 reduction categories by country tells us some interesting things
 about differences between the countries of the UK.
@@ -1233,12 +1227,21 @@ challenge - there is no way to do this intuitively.
 
 ```
 
+
+
+
 ```{r v22_server,context="server"}
   
  sum_tab2<-   ghg_2022 %>%
   group_by(Country,CO2_Reduction_from_2005) %>%
       summarise(n=n()) %>%
-  mutate(p=n/sum(n))
+  mutate(p=n/sum(n))%>%ungroup()%>%
+  rbind(data.frame(Country="Wales",
+                   CO2_Reduction_from_2005="30% or less",n=0,p=0))%>%
+  rbind(data.frame(Country="Northern Ireland",  CO2_Reduction_from_2005="50% or more",n=0,p=0))%>%
+  arrange(Country,CO2_Reduction_from_2005)
+
+sum_tab2$CO2_Reduction_from_2005<-factor(sum_tab2$CO2_Reduction_from_2005)
 
 output$catplot2 <- renderPlot({
   if(input$cat_plot2=="bar")  {
@@ -1303,6 +1306,50 @@ output$catplot2 <- renderPlot({
             palette = "Set2",
             bg.labels=c("white")
             )  %>% print()
+    }
+      if(input$cat_plot2=="waffle")  {
+if(input$num_t2=="Frequencies"){
+  
+p1.1<-waffle(select(filter(sum_tab2,Country=="England"),CO2_Reduction_from_2005,n),
+       rows=19, size=0.5,title = "England",keep=TRUE,
+       xlab="1 Square  = 1 County")
+p1.2<-waffle(select(filter(sum_tab2,Country=="Scotland"),CO2_Reduction_from_2005,n),
+       rows=5, size=0.5,title = "Scotland",keep=TRUE,
+       xlab="1 Square  = 1 County")
+p1.3<-waffle(select(filter(sum_tab2,Country=="Wales"),CO2_Reduction_from_2005,n),
+       rows=5, size=0.5,title = "Wales",keep=TRUE,
+       xlab="1 Square  = 1 County")
+p1.4<-waffle(select(filter(sum_tab2,Country=="Northern Ireland"),CO2_Reduction_from_2005,n),
+       rows=3, size=0.5,title = "Northern Ireland",keep=TRUE,
+       xlab="1 Square  = 1 County")
+
+
+ marrangeGrob(list(p1.1,p1.2,p1.3,p1.4), nrow=2, ncol=2,top = "Frequencies")%>% print()
+ 
+ 
+
+        }
+                if(input$num_t2!="Frequencies"){
+p1.1<-waffle(select(filter(sum_tab2,Country=="England"),CO2_Reduction_from_2005,p)%>%
+                mutate(p=round(100*p)),
+       rows=10, size=0.5,title = "England",keep = TRUE,
+       xlab="1 Square  = 1 %")
+p1.2<-waffle(select(filter(sum_tab2,Country=="Scotland"),CO2_Reduction_from_2005,p)%>%
+                mutate(p=round(100*p)),
+       rows=10, size=0.5,title = "Scotland",keep = TRUE,
+       xlab="1 Square  = 1 %")
+p1.3<-waffle(select(filter(sum_tab2,Country=="Wales"),CO2_Reduction_from_2005,p)%>%
+                mutate(p=round(100*p)),
+       rows=10, size=0.5,title = "Wales",keep=TRUE ,
+       xlab="1 Square  = 1 %")
+p1.4<-waffle(select(filter(sum_tab2,Country=="Northern Ireland"),CO2_Reduction_from_2005,p)%>%
+                mutate(p=round(100*p)),
+       rows=10, size=0.5,title = "Northern Ireland",keep = TRUE,
+       xlab="1 Square  = 1 %")
+
+
+ marrangeGrob(list(p1.1,p1.2,p1.3,p1.4), nrow=2, ncol=2,top = "Percentages") %>% print()
+        }
     }
      if(input$cat_plot2=="count")  {
               if(input$num_t2=="Frequencies"){
@@ -1460,7 +1507,7 @@ Like with the scatter plot, this is the immediately obvious choice for a
 summary statistic when considering two numeric variables, but therere
 are lots of different variations of the correlation coefficient. The
 "default" correlation method that you are likely familiar with, and has
-been applied in the plot above, isthe "Pearson" method. Some of the most
+been applied in the plot above, is the "Pearson" method. Some of the most
 common alternatives, "Spearman" & "Kendall", are summarised in the table
 below with the rationale for when they might be applied.
 
@@ -1529,7 +1576,7 @@ show beyond just a simple x/y relationship.
 
 ### Going further with scatter plots
 
-Beyond just establishing the potential existence and shape of a trends,
+Beyond just establishing the potential existence and shape of trends,
 there are many further questions we can visually explore with scatter
 plots:
 
@@ -1540,7 +1587,7 @@ plots:
     mistakes, or are there other factors which may explain why they are
     different?
 -   If there are other factors, can we start to bring in additional
-    variables to explore the relationship in 3 (or more) dimensions
+    variables to explore the relationship in 3 (or more) dimensions?
 
 From the plots we have made so far there are some questions or next
 steps that we might take from our original plot, once we have
@@ -1644,7 +1691,7 @@ column(
   })
 ```
 
-By trying different options in our exploration, this will will help us
+By trying different options in our exploration, this will help us
 to understand even more about our data!
 
 -   The large deviation in the trend for North Yorkshire does indeed
@@ -1886,8 +1933,30 @@ visualisations.
 
 If you are trying to improve your skills with any specific data analysis
 software or tools (R/Python/Stata etc), then I would strongly encourage
-you to download the raw data here: https://raw.githubusercontent.com/stats4sd/explore_earthquakes/refs/heads/dev/quakes.csv and
-explore the data using that tool. 
+you to download the raw data here and explore the data using that tool:
+
+```{r dl, context="render",echo=FALSE}
+
+downloadButton("downloadData", "Download Data")
+```
+
+```{r dl_server,context="server"}
+
+output$downloadData <- downloadHandler(
+    filename = function() {
+      # Use the selected dataset as the suggested file name
+      paste0("quakes",".csv")
+    },
+    content = function(file) {
+      # Write the dataset to the `file` that will be downloaded
+      quakes<-readRDS("data/quakes.RDS")
+      write.csv(quakes, file)
+    }
+  )
+
+```
+
+(Direct URL: https://raw.githubusercontent.com/stats4sd/explore_earthquakes/refs/heads/dev/quakes.csv) 
 
 Try to recreate what you have been
 able to produce using the interactive app, and then to keep exploring
@@ -1910,9 +1979,8 @@ data:
 -   How commonly observed are earthquakes that would be classified as
     “moderate” (5-6 magnitude on the Richter scale) or “strong” (6 and
     above)?
--   Does there look like there relationships between the depth or number
-    of stations reporting the earthquake with the magnitude of the
-    earthquakes?
+-   Are the depth or number of stations variables correlated with the magnitude of the
+    earthquakes? How would you describe these relationships?
 -   Are there any trends in the magnitude, the depth, or the number of
     stations reporting each earthquake over time?
 -   Are there any patterns in the locations of the earthquakes over
@@ -1927,8 +1995,10 @@ A 'classic' text which popularised many of the exploratory techniques
 covered in this session, which still makes many relevant general points.
 
 <https://www.stat.cmu.edu/~hseltman/309/Book/chapter4.pdf> A slightly
-more technical introduction to EDA then is presented here
+more 'technical introduction' to EDA then is presented here
 
 <https://r4ds.had.co.nz/exploratory-data-analysis.html>
+The R for data science book is generally an excellent resource for anyone planning to learn, or learn more, about R. The chapter on Exploratory Data Analysis is excellent
 
 <https://www.youtube.com/watch?v=QiqZliDXCCg>
+A 5 minute intro to some of the key principles of EDA

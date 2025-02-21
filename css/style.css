@@ -24,10 +24,37 @@ a {
 
 /* General formatting */
 
-body,.book,.book-summary {
+body, .section, .book, .book-summary, h1, h2, h3, .btn  {
   font-family: "Open Sans", arial !important; 
 }
+.btn {
+  background-color: #d32229;
+  color: #fff;
+  border-radius: 20px;
+  font-weight: 600;
+  text-shadow: none;
+  font-family: "Open Sans", arial !important; 
+  padding: 8px 18px;
+}
+.section {
+  margin-top: 5rem
+}
+label {
+  margin-top: 0.4rem;
+  }
+  table {
+    font-size: inherit !important;
+  }
 
+  .gtitle {
+    font-size: 2rem !important;
+  }
+  .xtitle, .ytitle {
+    font-size: 1.6rem !important;
+  }
+  .html-widget, pre {
+    margin: 2.5rem 0rem;
+  }
   /* Headings */
 h1,h2 {
 
@@ -36,13 +63,13 @@ h1,h2 {
 }
 
 h1 {
-  font-size: 3.5rem;
-    color: #d32229
-  
+  font-size: 3rem !important;
+    color: #d32229;
+    margin-bottom: 4rem;
 }
 h2 {
-  font-size: 2rem;
-  margin-bottom: 1.4rem;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
     color: #000;
   
 }
@@ -57,7 +84,7 @@ h2::after {
 
   }
 h3 {
-  font-size: 1.4rem !important;
+  font-size: 1.8rem !important;
   font-weight: 700 !important;
 }
 
@@ -72,21 +99,9 @@ h3 {
 
 
 /* sidebar */
-li.chapter {
-  font-weight: 500;
-}
-ul.summary li a:hover, .book .book-summary ul.summary li.active > a {
-  color: #d32229 !important;
-}
-
-.summary .divider {
-  display: none;
-}
-
-nav>ul.summary:first-child>li:first-child {
-  font-size: 1.7rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
+.topicsList .topic {
+  background-size: 2px 400px !important;
+  background-position: left 200% important;
 }
 
 /* Intro cover */

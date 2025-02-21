@@ -1,0 +1,544 @@
+---
+title: "Exploratory Data Analysis - Code Only"
+author: "Sam Dumble"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+#install.packages(c("tidyverse","waffle","treemap","Hmisc","psych","agricolae","janitor","gridExtra"))
+
+library(tidyverse)
+library(waffle)
+library(treemap)
+library(Hmisc)
+library(psych)
+library(agricolae)
+library(janitor)
+library(gridExtra)
+library(plotly)
+```
+
+## Data Manipulation
+
+Downloading the file directly from the URL and loading it in
+
+```{r cars}
+
+ghg<-read.csv("https://assets.publishing.service.gov.uk/media/667ad86497ea0c79abfe4bfd/2005-2022-local-authority-ghg-emissions-csv-dataset.csv",stringsAsFactors = TRUE)
+
+```
+
+Two subsets are used in the workbook - one for local authorities in 2022 and one over time.
+
+There are a few tricks in the code here - to be able to calculate the change over time variable, and then to pick out the correct values for total area and total population without double counting.
+
+But there are plenty of other ways of getting to the same point!
+
+```{r}
+ghg_2022<-ghg %>%
+  #select CO2 and 2022 or 2005
+  filter(Greenhouse.gas=="CO2" & Calendar.Year=="2022"|Calendar.Year=="2005") %>%
+  #summarise at LA level
+  group_by(Country,Country.Code,Region,Region.Code,
+           Second.Tier.Authority,Local.Authority,Local.Authority.Code,
+           Area..km2.,Mid.year.Population..thousands.,Calendar.Year) %>%
+  #get the total across all subsectotrs
+  summarise(Annual.CO2.Total=sum(CO2.emissions.within.the.scope.of.influence.of.LAs..kt.CO2.)) %>%
+  #remove the unallocated from this analysis
+  filter(Country!="Unallocated")%>%
+  ungroup() %>%
+  #AT LA level determine the % change from 2005
+  group_by(Local.Authority)%>%
+  mutate(chg=1-(Annual.CO2.Total/mean(Annual.CO2.Total[Calendar.Year=="2005"],na.rm=T)))%>%
+  mutate("CO2_Reduction_from_2005"=cut(chg,breaks=c(0,0.3,0.4,0.5,1),labels=c("30% or less",
+                                                                                  "30-40%","40-50%","50% or more"))) %>%
+  select(-chg) %>%
+  #remove the 2005 data
+  filter(Calendar.Year=="2022")
+
+
+
+ghg_allyears<-ghg %>%
+  #first summarise to year by LA level for only the CO2
+  filter(Greenhouse.gas=="CO2") %>%
+  group_by(Country,Country.Code,Region,Region.Code,
+           Second.Tier.Authority,Local.Authority,Local.Authority.Code,
+           Calendar.Year,Area..km2.,Mid.year.Population..thousands.) %>%
+  summarise(Annual.CO2.Total=sum(CO2.emissions.within.the.scope.of.influence.of.LAs..kt.CO2.)) %>%
+  filter(Country!="Unallocated")%>%
+  #Now that we have one row per LA per year we can sum the area and population within each country
+  #If we did this in previous step we would be counting same values multiple times
+  group_by(Country,Calendar.Year) %>%
+    summarise(Annual.CO2.Total=sum(Annual.CO2.Total),
+              Mid.year.Population..thousands.=sum(Mid.year.Population..thousands.),
+              Area..km2.=sum(Area..km2.))
+
+```
+
+### Looking at the UK Greenhouse Gas Data
+
+
+```{r}
+ghg %>%
+  slice(1:1000)
+```
+
+```{r}
+summary(ghg)
+```
+
+```{r}
+ghg %>%
+  group_by(Country) %>%
+    summarise(Total=n(),"Population Recorded"=sum(!is.na(Mid.year.Population..thousands.)),
+              "Population Missing"=sum(is.na(Mid.year.Population..thousands.)),
+              "Area Recorded"=sum(!is.na(Area..km2.)),
+              "Area Missing"=sum(is.na(Area..km2.)))
+```
+
+### Summary Statistics
+
+```{r}
+ghg_2022 %>%
+  ungroup() %>%
+      summarise("Number of Counties"=n(),
+                Mean=mean(Annual.CO2.Total)%>%round(1),
+                Median=median(Annual.CO2.Total)%>%round(1),
+                "Trimmed mean"=mean(Annual.CO2.Total,trim = 0.05)%>%round(1),
+                 "Geometric mean"=geometric.mean(Annual.CO2.Total)%>%round(1),
+                "Harmonic mean"=harmonic.mean(Annual.CO2.Total)%>%round(1),
+                 Sum=sum(Annual.CO2.Total)%>%round(),
+                "Minimum"=min(Annual.CO2.Total)%>%round(1),
+                "Maximum"=max(Annual.CO2.Total)%>%round(1),
+                "Range"=(max(Annual.CO2.Total)-min(Annual.CO2.Total))%>%round(1),
+                "Standard Deviation"=sd(Annual.CO2.Total)%>%round(1),
+                "Variance"=var(Annual.CO2.Total)%>%round(),
+                "Coefficient of Variation"=scales::percent(sd(Annual.CO2.Total)/mean(Annual.CO2.Total)),
+                "Lower Quartile"=quantile(Annual.CO2.Total,0.25)%>%round(1),
+                "Upper Quartile"=quantile(Annual.CO2.Total,0.75)%>%round(1),
+                "Inter Quartile Range"=diff(quantile(Annual.CO2.Total,c(0.25,0.75)))%>%round(1),
+                "Median Absolute Deviation"=mad(Annual.CO2.Total)%>%round(1),
+                "Kurtosis"=kurtosis(Annual.CO2.Total)%>%round(2),
+                "Skewness"=skewness(Annual.CO2.Total)%>%round(2),
+                "% of Values Over Threshold (100kt)"=scales::percent(mean(Annual.CO2.Total>1000)),
+                )%>%
+  gather(Statistic,Value)
+```
+## One variable plots
+
+'One variable' but often here I have cheated by putting in two variables as ggplot will require two variables to plot. As Calendar Year is constant (always 2022) then this is not really a variable!
+
+Minimal examples of the code included without any formatting: in EDA our primary goal is to make things quickly/flexiblly & functionally. Making it look pretty can wait until later!
+
+```{r}
+ ggplot(ghg_2022)+
+   geom_point(aes(y=Annual.CO2.Total,x=Calendar.Year))
+```
+
+```{r}
+ ggplot(ghg_2022)+
+  geom_point(aes(y=Annual.CO2.Total,x=rank(Annual.CO2.Total)))
+```
+
+```{r}
+ ggplot(ghg_2022)+
+     geom_jitter(aes(y=Annual.CO2.Total,x=Calendar.Year),height=0,width=0.25)
+```
+
+```{r}
+ ggplot(ghg_2022)+
+ stat_summary(aes(y=Annual.CO2.Total,x=Calendar.Year),fun.data=mean_cl_normal,conf.int=0.95)
+```
+
+```{r}
+ ggplot(ghg_2022)+
+geom_histogram(aes(x=Annual.CO2.Total))
+```
+
+
+```{r}
+ ggplot(ghg_2022)+
+geom_freqpoly(aes(x=Annual.CO2.Total))
+```
+
+```{r}
+ ggplot(ghg_2022)+
+geom_violin(aes(y=Annual.CO2.Total,x=Calendar.Year,group=Calendar.Year))
+```
+
+```{r}
+ ggplot(ghg_2022)+
+geom_density(aes(x=Annual.CO2.Total))
+```
+
+```{r}
+ ggplot(ghg_2022)+
+geom_boxplot(aes(y=Annual.CO2.Total,x=Calendar.Year,group=Calendar.Year))
+```
+
+```{r}
+ ggplot(ghg_2022)+
+  stat_summary(geom="col",fun="mean",aes(y=Annual.CO2.Total,x=Calendar.Year))
+```
+
+
+```{r}
+ ggplot(ghg_2022)+
+stat_ecdf(geom = "step",aes(x=Annual.CO2.Total))
+```
+
+
+```{r}
+ ggplot(ghg_2022)+
+  stat_qq(aes(sample=Annual.CO2.Total))+
+  stat_qq_line(aes(sample=Annual.CO2.Total))
+```
+
+## Categorical variables
+
+```{r}
+ghg_2022 %>%
+  group_by(CO2_Reduction_from_2005) %>%
+      summarise("Number of Counties"=n(),
+                "Percentage of Counties"=scales::percent(n()/nrow(ghg_2022),0.1))
+```
+
+Producing summary table first and then using this to create plots. To plot percentages/proportions then simply swap out "n" for "p"
+
+```{r}
+ sum_tab<-   ghg_2022 %>%
+  group_by(CO2_Reduction_from_2005) %>%
+      summarise(n=n(),
+                p=n()/nrow(ghg_2022))
+```
+
+```{r}
+ggplot(sum_tab,aes(x=CO2_Reduction_from_2005,y=n,fill=CO2_Reduction_from_2005))+
+          geom_col()
+```
+
+```{r}
+ggplot(ghg_2022,aes(y=CO2_Reduction_from_2005,x=1,col=CO2_Reduction_from_2005))+
+          geom_count()
+```
+
+```{r}
+ggplot(sum_tab,aes(x=1,y=n,fill=CO2_Reduction_from_2005))
+          geom_col()
+```
+
+```{r}
+waffle(select(sum_tab,CO2_Reduction_from_2005,n),
+       rows=19, size=0.5,title = "CO2 Reduction Across Counties Within The UK",
+       xlab="1 Square  = 1 County") 
+```
+
+```{r}
+ggplot(sum_tab,aes(x=1,fill=CO2_Reduction_from_2005,y=n))+
+  geom_col()+
+  coord_polar("y", start=0)
+
+```
+
+```{r}
+
+treemap(sum_tab,index="CO2_Reduction_from_2005",vSize="n")  
+```
+
+Two variables
+
+```{r}
+ghg_2022 %>%
+  group_by(Country) %>%
+      summarise("Number of Counties"=n(),
+                Mean=mean(Annual.CO2.Total)%>%round(1),
+                Median=median(Annual.CO2.Total)%>%round(1),
+                "Trimmed mean"=mean(Annual.CO2.Total,trim = 0.05)%>%round(1),
+                 "Geometric mean"=psych::geometric.mean(Annual.CO2.Total)%>%round(1),
+                "Harmonic mean"=psych::harmonic.mean(Annual.CO2.Total)%>%round(1),
+                 Sum=sum(Annual.CO2.Total)%>%round(),
+                "Minimum"=min(Annual.CO2.Total)%>%round(1),
+                "Maximum"=max(Annual.CO2.Total)%>%round(1),
+                "Range"=(max(Annual.CO2.Total)-min(Annual.CO2.Total))%>%round(1),
+                "Standard Deviation"=sd(Annual.CO2.Total)%>%round(1),
+                "Variance"=var(Annual.CO2.Total)%>%round(),
+                "Coefficient of Variation"=scales::percent(sd(Annual.CO2.Total)/mean(Annual.CO2.Total)),
+                "Lower Quartile"=quantile(Annual.CO2.Total,0.25)%>%round(1),
+                "Upper Quartile"=quantile(Annual.CO2.Total,0.75)%>%round(1),
+                "Inter Quartile Range"=diff(quantile(Annual.CO2.Total,c(0.25,0.75)))%>%round(1),
+                "Median Absolute Deviation"=mad(Annual.CO2.Total)%>%round(1),
+                "Kurtosis"=agricolae::kurtosis(Annual.CO2.Total)%>%round(2),
+                "Skewness"=agricolae::skewness(Annual.CO2.Total)%>%round(2),
+                "% of Values Over Threshold (100kt)"=scales::percent(mean(Annual.CO2.Total>1000)),
+                )%>%
+  gather(Statistic,Value,-Country ,factor_key = TRUE) %>%
+  spread(Country ,Value)
+```
+
+## Plots with two variables
+
+Points:
+```{r}
+ ggplot(ghg_2022)+
+   geom_point(aes(y=Annual.CO2.Total,x=Country))
+```
+
+Caterpillars:
+```{r}
+ ggplot(ghg_2022)+
+  geom_point(aes(y=Annual.CO2.Total,x=rank(Annual.CO2.Total)))+
+  facet_wrap(~Country)
+```
+Jittered points:
+```{r}
+ ggplot(ghg_2022)+
+     geom_jitter(aes(y=Annual.CO2.Total,x=Country),height=0,width=0.25)
+```
+Error bars:
+```{r}
+ ggplot(ghg_2022)+
+ stat_summary(aes(y=Annual.CO2.Total,x=Country),fun.data=mean_cl_normal,conf.int=0.95)
+```
+
+histograms:
+```{r}
+ ggplot(ghg_2022)+
+geom_histogram(aes(x=Annual.CO2.Total))+
+  facet_wrap(~Country)
+```
+
+Frequecncy Polygon:
+```{r}
+ ggplot(ghg_2022)+
+geom_freqpoly(aes(x=Annual.CO2.Total,colour=Country))
+```
+Violins:
+```{r}
+ ggplot(ghg_2022)+
+geom_violin(aes(y=Annual.CO2.Total,x=Country))
+```
+
+Density plots:
+```{r}
+ ggplot(ghg_2022)+
+geom_density(aes(x=Annual.CO2.Total,color=Country))
+```
+
+Boxplots:
+```{r}
+ ggplot(ghg_2022)+
+geom_boxplot(aes(y=Annual.CO2.Total,x=Country))
+```
+Bar charts:
+```{r}
+ ggplot(ghg_2022)+
+  stat_summary(geom="col",fun="mean",aes(y=Annual.CO2.Total,x=Country))
+```
+
+Cumulative density:
+```{r}
+ ggplot(ghg_2022)+
+stat_ecdf(geom = "step",aes(x=Annual.CO2.Total,color=Country))
+```
+
+QQ Plots:
+```{r}
+ ggplot(ghg_2022)+
+  stat_qq(aes(sample=Annual.CO2.Total))+
+  stat_qq_line(aes(sample=Annual.CO2.Total))+
+  facet_wrap(~Country)
+```
+
+### Cross Tabs
+
+The `janitor` package has a nice interface for switching between the different percentage types in a more intuitive way than using dplyr.
+
+```{r}
+ghg_2022 %>%
+  tabyl(CO2_Reduction_from_2005,Country) %>%
+      adorn_percentages(denominator = "row")%>%
+      adorn_pct_formatting() %>%
+      adorn_ns(format_func = function(x)paste("n =",x))
+
+ghg_2022 %>%
+  tabyl(CO2_Reduction_from_2005,Country) %>%
+      adorn_percentages(denominator = "col")%>%
+      adorn_pct_formatting() %>%
+      adorn_ns(format_func = function(x)paste("n =",x))
+
+ghg_2022 %>%
+  tabyl(CO2_Reduction_from_2005,Country) %>%
+      adorn_percentages(denominator = "all")%>%
+      adorn_pct_formatting() %>%
+      adorn_ns(format_func = function(x)paste("n =",x))
+```
+
+```{r}
+sum_tab2<-   ghg_2022 %>%
+  group_by(Country,CO2_Reduction_from_2005) %>%
+      summarise(n=n()) %>%
+  mutate(p=n/sum(n))%>%ungroup()%>%
+  rbind(data.frame(Country="Wales",
+                   CO2_Reduction_from_2005="30% or less",n=0,p=0))%>%
+  rbind(data.frame(Country="Northern Ireland",  CO2_Reduction_from_2005="50% or more",n=0,p=0))%>%
+  arrange(Country,CO2_Reduction_from_2005)
+
+sum_tab2$CO2_Reduction_from_2005<-factor(sum_tab2$CO2_Reduction_from_2005)
+```
+
+Bars
+```{r}
+ggplot(sum_tab2,aes(x=Country,y=p,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = FALSE,col="black",position="dodge")
+```
+
+Stacked Bars
+```{r}
+
+ggplot(sum_tab2,aes(x=Country,y=p,fill=CO2_Reduction_from_2005))+
+          geom_col(show.legend = TRUE,col="black")
+```
+
+Pie chart
+```{r}
+ggplot(sum_tab2,aes(x=1,fill=CO2_Reduction_from_2005,y=p))+
+  geom_col(col="black",alpha=0.8)+
+  coord_polar("y", start=0)+
+   facet_wrap(~Country,scales="free")
+```
+
+Treemaps
+```{r}
+treemap(sum_tab2,
+            index=c("Country","CO2_Reduction_from_2005"),
+            vSize="p",
+            type="index",
+            vColor="CO2_Reduction_from_2005")
+            
+```
+
+Waffle plots: (not really a way to do this with multiple variables easily, so having to take apart and then put back together!)
+```{r}
+
+p1.1<-waffle(select(filter(sum_tab2,Country=="England"),CO2_Reduction_from_2005,p)%>%
+                mutate(p=round(100*p)),
+       rows=10, size=0.5,title = "England",keep = TRUE,
+       xlab="1 Square  = 1 %")
+p1.2<-waffle(select(filter(sum_tab2,Country=="Scotland"),CO2_Reduction_from_2005,p)%>%
+                mutate(p=round(100*p)),
+       rows=10, size=0.5,title = "Scotland",keep = TRUE,
+       xlab="1 Square  = 1 %")
+p1.3<-waffle(select(filter(sum_tab2,Country=="Wales"),CO2_Reduction_from_2005,p)%>%
+                mutate(p=round(100*p)),
+       rows=10, size=0.5,title = "Wales",keep=TRUE ,
+       xlab="1 Square  = 1 %")
+p1.4<-waffle(select(filter(sum_tab2,Country=="Northern Ireland"),CO2_Reduction_from_2005,p)%>%
+                mutate(p=round(100*p)),
+       rows=10, size=0.5,title = "Northern Ireland",keep = TRUE,
+       xlab="1 Square  = 1 %")
+
+
+ marrangeGrob(list(p1.1,p1.2,p1.3,p1.4), nrow=2, ncol=2,top = "Percentages") %>% print()
+      
+
+```
+
+Count plot
+
+```{r}
+ggplot(ghg_2022,aes(y=CO2_Reduction_from_2005,x=Country,group=Country))+
+          geom_count(show.legend = TRUE,col="black",shape=21,aes(size = after_stat(prop),fill=CO2_Reduction_from_2005))
+```
+
+
+## Two Numeric Variables
+
+```{r}
+ggplot(data=ghg_2022,aes(x=Mid.year.Population..thousands.,y=Annual.CO2.Total))+
+  geom_point()
+```
+
+```{r}
+ggplot(data=ghg_2022,aes(x=Mid.year.Population..thousands.,y=Annual.CO2.Total))+
+  geom_point()+
+  geom_smooth(method="lm")
+
+ggplot(data=ghg_2022,aes(x=Mid.year.Population..thousands.,y=Annual.CO2.Total))+
+  geom_point()+
+  geom_smooth(method="loess")
+
+ggplot(data=ghg_2022,aes(x=Mid.year.Population..thousands.,y=Annual.CO2.Total))+
+  geom_point()+
+  geom_smooth(method="gam")
+```
+
+
+As an extra 'type' of plot - the ability to identify points through interactivity is very useful!
+
+Can make any ggplot interactive using ggplotly, and adding any variables to the aes() will enable them when you click/hover over the points
+
+```{r}
+p1<-ggplot(data=ghg_2022,aes(x=Mid.year.Population..thousands.,y=Annual.CO2.Total,Local.Authority=Local.Authority))+
+  geom_point()
+ggplotly(p1)
+```
+
+
+
+
+```{r}
+ghg_2022 %>%
+  ungroup() %>%
+  select(Area..km2.,Mid.year.Population..thousands.,Annual.CO2.Total) %>%
+      cor(method="pearson")
+
+ghg_2022 %>%
+  ungroup() %>%
+  select(Area..km2.,Mid.year.Population..thousands.,Annual.CO2.Total) %>%
+      cor(method="spearman")
+
+ghg_2022 %>%
+  ungroup() %>%
+  select(Area..km2.,Mid.year.Population..thousands.,Annual.CO2.Total) %>%
+      cor(method="kendall")
+```
+
+I am not going to include every possible scatter plot you could make from the tool! But will be some combination of variables like this:
+```{r}
+ggplot(ghg_2022,aes(y=Annual.CO2.Total,x=Area..km2.))+
+    geom_point(aes(colour=Country,size=Mid.year.Population..thousands.),alpha=0.6)+
+scale_x_log10()+
+ scale_y_log10()
+```
+
+
+
+#Trends over time
+
+Calculating the transformed and derived variables
+
+```{r}
+  ghg_allyears<-ghg_allyears %>%
+  mutate(Annual.CO2.Total_percap=(Annual.CO2.Total/Mid.year.Population..thousands.))%>%
+mutate(Annual.CO2.Total_perkm=(Annual.CO2.Total/Area..km2.))%>%
+group_by(Country) %>%
+  mutate(Annual.CO2.Total_rebase=(Annual.CO2.Total-mean(Annual.CO2.Total[Calendar.Year==2005],na.rm=T)))%>%
+mutate(Annual.CO2.Total_rebase_per=-1+(Annual.CO2.Total/
+                                             mean(Annual.CO2.Total[Calendar.Year==2005],na.rm=T)))
+
+```
+
+Then making plots with either step or line:
+
+```{r}
+    
+ggplot(ghg_allyears)+geom_line(aes(y=Annual.CO2.Total_percap,x=Calendar.Year,colour=Country))
+```
+
+```{r}
+
+ggplot(ghg_allyears)+geom_step(aes(y=Annual.CO2.Total_percap,x=Calendar.Year,colour=Country))
+```
+
