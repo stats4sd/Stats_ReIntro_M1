@@ -103,20 +103,19 @@ summarising our data before we move to any formal statistical analysis.
 While it may be tempting to skip to the end and start immediately
 fitting models or testing hypotheses to get the "results", going into
 these blind may lead to completely incorrect conclusions, overlooking
-important findings, or missing key caveats that would be needed. The aim
-of this process should be to help us to understand the data we are
-working with, uncover general patterns and trends in our data, identify
-possible data errors & inform choices for our future modelling about the
-shape of distributions. The most important part of this phase of
-analysis is to truly consider it as an exploration, rather than a box
-ticking exercises. There are no wrong approaches, but you may learn
-different things from being willing and able to explore your data in
-different ways. The goal is simply to learn as much as possible about
-your data and starting to establish the links between how your data
-links to reality, and how your data can be mapped against your research
-questions.
+important findings, or missing key caveats that would be needed.
 
-This session will cover:
+The goal is simply to learn as much as possible about your data:
+understand the data we are working with, uncover general patterns and
+trends in our data, identify possible data errors & inform choices for
+our future modelling about the shape of distributions. This starts to
+establish the links between how your data and observations link to the
+real world processes you are trying to understand; and how your data can
+be best mapped against your research questions.
+
+This session will cover a wide range of different methods and
+approaches, linked in to an exploration of a dataset related to the
+carbon emissions in the UK over time. We will cover:
 
 -   Data familiarisation and checking
 
@@ -142,25 +141,37 @@ noticing about the variables, and their relationship as I talk through.
 
 ![](https://youtu.be/BL3WdUWm1Q8)
 
-A good data explorer needs to be able to comfortably work with any
-data - manipulating it where needed by summarising to different levels,
-correct mistakes, or derive new variables - and to be able to produce a
-flexible range of different visualisations. You might be able to do some
-of this using Excel or Google Sheets, but to do it well and to do it in
-a reproducible and flexible way you will likely need to be using some
-other software tools like R or Python. In the video, and in the
-exercises, I used a simple interactive data exploration tool - built
-using R - to help me work quickly without needing to do any live
-coding. But that does come at the expense of having full flexibility over everything I
-might want to do.
+" *If we need a short suggestion of what exploratory data analysis is, I
+would suggest that*
+
+1.  *It is an attitude AND*
+
+2.  *A flexibility AND*
+
+3.  *Some graph paper (or transparencies, or both)." John Tukey,
+    American Statistician* **40** (1986)
+
+While the third point may now be a little out of date, the quote remains
+a good illustration of both the simplicity and the challenges of
+exploratory data analysis. The actual methods being used may be
+relatively simple but having the flexibility and curiousity to ask
+questions in different ways to be able to obtain insights from your data
+is a skill that requires some degree of practice. In the video, and for
+the exercises in this module, I used a simple interactive data
+exploration tool - built using R - to help me work quickly without
+needing to do any live coding. But that ease does come at the expense of
+having the full flexibility over everything I might want to do. In
+practice this is an area where having strong skills in your chosen
+software tools, to replace the graph paper from Tukey's quote, is vital.
 
 In these workbooks all output produced will come from the use of R, and
-all of the code used in the workbooks can be found on GitHub here:
-<https://github.com/stats4sd/Stats_ReIntro_M1>. But the principles are
-identical regardless of which data analysis tool is being used. Whichever
-tool is being used for data analysis - it will require that the user is
-familiar enough with it to be able to generate any sort of summary or
-plot or transformation that they might suddenly think could be useful!
+all of the code used in the workbooks can be found through the course
+site, or on [GitHub](https://github.com/stats4sd/Stats_ReIntro_M1). But
+the principles are identical regardless of which data analysis tool is
+being used. Whichever tool is being used for data analysis - it will
+require that the user is familiar enough with it to be able to generate
+any sort of summary or plot or transformation that they might suddenly
+think could be useful!
 
 ## Data being used in this workbook
 
@@ -248,7 +259,9 @@ look at the data - the first 1000 rows are shown below:
 DT::datatable(ghg_snap)
 ```
 
-**NOTE: Depending on your screen size and resolution you will only see the first few columns initially but you can scroll right, or use the arrow keys to see the full set of variables** 
+**NOTE: Depending on your screen size and resolution you will only see
+the first few columns initially but you can scroll right, or use the
+arrow keys to see the full set of variables**
 
 From a quick inspection visually of the first few hundred rows of this
 data we can actually learn quite a lot and start to answer some of the
@@ -309,11 +322,11 @@ ghg_missing %>% gt()
 
 -   If we look more at data restricted to show only the unallocated rows
     the "local authority column" we can see that these are definitely
-    not local authorities! This column provides a
-    very short description of the context - "Large elec users" or
-    "Unallocated consumption". Nearly all the rows for these unallocated
-    entries are for the Industry or Domestic sectors although there are
-    some which relate to Waste or LULUCF
+    not local authorities! This column provides a very short description
+    of the context - "Large elec users" or "Unallocated consumption".
+    Nearly all the rows for these unallocated entries are for the
+    Industry or Domestic sectors although there are some which relate to
+    Waste or LULUCF
     (<https://unfccc.int/topics/land-use/workstreams/land-use--land-use-change-and-forestry-lulucf>).
     The existence of these rows, attributing emissions to unknown
     sources, will mean we have to think carefully about what to do with
@@ -676,7 +689,13 @@ that we need to ask:
     population as the rest of the observations, and collected using the
     same methodology?** It is possible for data to be 'real' but be
     incomparable to the rest of our observations. We may be "comparing
-    apples to oranges" by including them side by side. In the video I highlighted the case of the "City of London", where the actual population is very low but the number of people who work within this area is very low. So considering a "per-capita" adjustment for the City of London based on population is going to be extremely misleading, and potential unhelpful to include within formal analysis.
+    apples to oranges" by including them side by side. In the video I
+    highlighted the case of the "City of London", where the actual
+    population is very low but the number of people who work within this
+    area is very low. So considering a "per-capita" adjustment for the
+    City of London based on population is going to be extremely
+    misleading, and potential unhelpful to include within formal
+    analysis.
 
 -   **If it is real are there other variables that may explain why it is
     so different?** The previous plot also helps illustrate a separate
@@ -762,9 +781,8 @@ calculation of standard errors or confidence intervals would be based on
 naive generic assumptions, that may be wildly incorrect. Using errorbars
 is a powerful visual tool to display and communicate the uncertainty in
 estimates that we have made after we have concluded our analysis and
-modelling which we will cover in later sessions. But it is not a
-good tool to help us understanding the data within this exploratory
-phase.
+modelling which we will cover in later sessions. But it is not a good
+tool to help us understanding the data within this exploratory phase.
 
 ## Exploring One Categorical Variable
 
@@ -806,8 +824,8 @@ variable. The three main things we should be considering are:
     sense to group those entries together into a new category. If the
     entries within the "rare" category did not make intuitive sense to
     link together, we could also group them into an existing variable.
-    For example - in the table below if we had one observation with
-    a reduction of "20% or less" and one reduction of "60% or more", it
+    For example - in the table below if we had one observation with a
+    reduction of "20% or less" and one reduction of "60% or more", it
     would make no sense to group those together. But it would make sense
     to combine the "20% or less" and "30-40%" categories together, and
     create a new label for this; and follow the same process at the
@@ -1227,9 +1245,6 @@ challenge - there is no way to do this intuitively.
 
 ```
 
-
-
-
 ```{r v22_server,context="server"}
   
  sum_tab2<-   ghg_2022 %>%
@@ -1507,9 +1522,9 @@ Like with the scatter plot, this is the immediately obvious choice for a
 summary statistic when considering two numeric variables, but therere
 are lots of different variations of the correlation coefficient. The
 "default" correlation method that you are likely familiar with, and has
-been applied in the plot above, is the "Pearson" method. Some of the most
-common alternatives, "Spearman" & "Kendall", are summarised in the table
-below with the rationale for when they might be applied.
+been applied in the plot above, is the "Pearson" method. Some of the
+most common alternatives, "Spearman" & "Kendall", are summarised in the
+table below with the rationale for when they might be applied.
 
 ```{r}
 
@@ -1691,8 +1706,8 @@ column(
   })
 ```
 
-By trying different options in our exploration, this will help us
-to understand even more about our data!
+By trying different options in our exploration, this will help us to
+understand even more about our data!
 
 -   The large deviation in the trend for North Yorkshire does indeed
     look be linked to its very large area as we suspected earlier
@@ -1956,11 +1971,12 @@ output$downloadData <- downloadHandler(
 
 ```
 
-(Direct URL: https://raw.githubusercontent.com/stats4sd/explore_earthquakes/refs/heads/dev/quakes.csv) 
+(Direct URL:
+<https://raw.githubusercontent.com/stats4sd/explore_earthquakes/refs/heads/dev/quakes.csv>)
 
-Try to recreate what you have been
-able to produce using the interactive app, and then to keep exploring
-further beyond those pre-built capabilities!
+Try to recreate what you have been able to produce using the interactive
+app, and then to keep exploring further beyond those pre-built
+capabilities!
 
 You are welcome to explore the data in whatever way you see fit;
 depending on what you might find interesting or what patterns you start
@@ -1979,8 +1995,9 @@ data:
 -   How commonly observed are earthquakes that would be classified as
     “moderate” (5-6 magnitude on the Richter scale) or “strong” (6 and
     above)?
--   Are the depth or number of stations variables correlated with the magnitude of the
-    earthquakes? How would you describe these relationships?
+-   Are the depth or number of stations variables correlated with the
+    magnitude of the earthquakes? How would you describe these
+    relationships?
 -   Are there any trends in the magnitude, the depth, or the number of
     stations reporting each earthquake over time?
 -   Are there any patterns in the locations of the earthquakes over
@@ -1997,8 +2014,10 @@ covered in this session, which still makes many relevant general points.
 <https://www.stat.cmu.edu/~hseltman/309/Book/chapter4.pdf> A slightly
 more 'technical introduction' to EDA then is presented here
 
-<https://r4ds.had.co.nz/exploratory-data-analysis.html>
-The R for data science book is generally an excellent resource for anyone planning to learn, or learn more, about R. The chapter on Exploratory Data Analysis is excellent
+<https://r4ds.had.co.nz/exploratory-data-analysis.html> The R for data
+science book is generally an excellent resource for anyone planning to
+learn, or learn more, about R. The chapter on Exploratory Data Analysis
+is excellent
 
-<https://www.youtube.com/watch?v=QiqZliDXCCg>
-A 5 minute intro to some of the key principles of EDA
+<https://www.youtube.com/watch?v=QiqZliDXCCg> A 5 minute intro to some
+of the key principles of EDA
